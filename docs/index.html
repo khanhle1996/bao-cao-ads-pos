@@ -3,27 +3,227 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="refresh" content="60">
   <title>Báo cáo Ads/POS — Antigravity</title>
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-           display: flex; align-items: center; justify-content: center;
-           min-height: 100vh; margin: 0; background: #f5f6fa; color: #555; }
-    .box { text-align: center; }
-    h1 { font-size: 20px; color: #2c3e50; margin-bottom: 10px; }
-    p  { font-size: 14px; }
-    .spinner { width: 36px; height: 36px; border: 4px solid #ddd;
-               border-top-color: #3498db; border-radius: 50%;
-               animation: spin 1s linear infinite; margin: 20px auto; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+           background: #f5f6fa; color: #222; font-size: 15px; }
+    .container { max-width: 1080px; margin: 0 auto; padding: 20px 16px 40px; }
+    header { margin-bottom: 24px; }
+    header h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+    .meta { margin-top: 6px; font-size: 13px; color: #666; }
+    .meta span { margin-right: 16px; }
+    section.brand { margin-bottom: 32px; }
+    section.brand h2 { font-size: 18px; font-weight: 600; color: #2c3e50;
+                        border-left: 4px solid #3498db; padding-left: 10px;
+                        margin-bottom: 12px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+    .card { background: #fff; border-radius: 10px; padding: 16px;
+             box-shadow: 0 1px 6px rgba(0,0,0,.08); }
+    .card-title { font-size: 13px; font-weight: 600; color: #888;
+                   text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    td { padding: 5px 0; vertical-align: top; }
+    td:first-child { color: #555; width: 55%; }
+    td:last-child { font-weight: 600; text-align: right; }
+    .divider { border: none; border-top: 1px solid #eee; margin: 8px 0; }
+    details { margin-top: 10px; font-size: 13px; color: #555; }
+    summary { cursor: pointer; color: #3498db; font-weight: 500; padding: 2px 0; }
+    .breakdown { margin-top: 6px; line-height: 1.7; }
+    .warning { margin-top: 10px; background: #fff3cd; border: 1px solid #ffc107;
+                border-radius: 6px; padding: 8px 10px; font-size: 13px; color: #856404; }
+    .roas-good { color: #27ae60; }
+    .roas-mid  { color: #e67e22; }
+    .roas-bad  { color: #e74c3c; }
+    .no-data   { color: #888; font-style: italic; padding: 20px 0; }
+    footer { margin-top: 32px; font-size: 12px; color: #aaa; text-align: center; }
   </style>
 </head>
 <body>
-  <div class="box">
-    <div class="spinner"></div>
-    <h1>📊 Báo cáo Ads/POS — Antigravity</h1>
-    <p>Đang chờ lần cập nhật đầu tiên từ GitHub Actions…</p>
-    <p style="margin-top:8px;font-size:12px;color:#aaa">Trang sẽ tự reload sau 60 giây</p>
+  <div class="container">
+    <header>
+      <h1>📊 Báo cáo Ads/POS — Antigravity</h1>
+      <div class="meta">
+        <span>🕐 Cập nhật lúc: <strong>00:31 01/06/2026</strong></span>
+        <span>⏭ Dự kiến cập nhật: 01:00 01/06/2026</span>
+      </div>
+    </header>
+    
+<section class="brand">
+  <h2>Lysilk</h2>
+  <div class="cards">
+<div class="card">
+  <div class="card-title">3 ngày (2026-05-30 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>6.808.158 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>59.302.396 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>64</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>11.48%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">8.71</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>35.880.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>18.97%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">5.27</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>213</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>32</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 5.546.951 VND; 3219708974940795: 1.261.207 VND<br>POS: 638801: 59.302.396 VND / 64 đơn</div></details>
+</div>
+<div class="card">
+  <div class="card-title">5 ngày (2026-05-28 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>15.967.602 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>118.918.541 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>127</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>13.43%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">7.45</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>56.530.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>28.25%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">3.54</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>390</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>53</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 13.415.740 VND; 3219708974940795: 2.551.862 VND<br>POS: 638801: 118.918.541 VND / 127 đơn</div></details>
+</div>
+<div class="card">
+  <div class="card-title">7 ngày (2026-05-26 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>28.215.279 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>167.820.847 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>187</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>16.81%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">5.95</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>90.720.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>31.10%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">3.22</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>602</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>87</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 23.527.830 VND; 3219708974940795: 4.687.449 VND<br>POS: 638801: 167.820.847 VND / 187 đơn</div></details>
+</div></div>
+</section>
+<section class="brand">
+  <h2>Jennie Choo</h2>
+  <div class="cards">
+<div class="card">
+  <div class="card-title">3 ngày (2026-05-30 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>67.659.758 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>426.139.294 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>178</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>15.88%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">6.30</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>250.990.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>26.96%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">3.71</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>1.332</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>123</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 692061999078661: 67.659.758 VND<br>POS: 20094936: 426.139.294 VND / 178 đơn</div></details>
+</div>
+<div class="card">
+  <div class="card-title">5 ngày (2026-05-28 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>132.607.488 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>819.089.038 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>352</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>16.19%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">6.18</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>477.230.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>27.79%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">3.60</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>2.288</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>254</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 692061999078661: 132.607.488 VND<br>POS: 20094936: 819.089.038 VND / 352 đơn</div></details>
+</div>
+<div class="card">
+  <div class="card-title">7 ngày (2026-05-26 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>194.979.753 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>1.249.502.911 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>560</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>15.60%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">6.41</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>769.700.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>25.33%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">3.95</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>3.169</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>412</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 692061999078661: 194.979.753 VND<br>POS: 20094936: 1.249.502.911 VND / 560 đơn</div></details>
+</div></div>
+</section>
+<section class="brand">
+  <h2>Say Studios</h2>
+  <div class="cards">
+<div class="card">
+  <div class="card-title">3 ngày (2026-05-30 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>5.288.042 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>26.831.000 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>8</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>19.71%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">5.07</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>16.150.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>32.74%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">3.05</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>135</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>5</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 1738022036969927: 5.288.042 VND<br>POS: 2619361: 26.831.000 VND / 8 đơn</div></details>
+</div>
+<div class="card">
+  <div class="card-title">5 ngày (2026-05-28 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>10.646.287 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>60.201.000 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>18</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>17.68%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">5.65</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>42.300.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>25.17%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">3.97</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>241</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>12</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 1738022036969927: 10.646.287 VND<br>POS: 2619361: 60.201.000 VND / 18 đơn</div></details>
+</div>
+<div class="card">
+  <div class="card-title">7 ngày (2026-05-26 – 2026-06-01)</div>
+  <table>
+    <tr><td>💸 Chi phí Ads</td><td>17.039.761 VND</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>🧾 Doanh thu POS</td><td>100.761.000 VND</td></tr>
+    <tr><td>📦 Số đơn POS</td><td>32</td></tr>
+    <tr><td>📉 CP/DT POS</td><td>16.91%</td></tr>
+    <tr><td>🚀 ROAS POS</td><td class="roas-good">5.91</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📈 DT Ads Manager</td><td>66.000.000 VND</td></tr>
+    <tr><td>📉 CP/DT Ads</td><td>25.82%</td></tr>
+    <tr><td>🚀 ROAS Ads</td><td class="roas-good">3.87</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>💬 Tin nhắn</td><td>358</td></tr>
+    <tr><td>🛒 Mua Meta</td><td>21</td></tr></table>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 1738022036969927: 17.039.761 VND<br>POS: 2619361: 100.761.000 VND / 32 đơn</div></details>
+</div></div>
+</section>
+    <footer>Dữ liệu từ Meta Ads Manager &amp; Pancake POS · Tự động cập nhật mỗi 1 tiếng</footer>
   </div>
 </body>
 </html>
