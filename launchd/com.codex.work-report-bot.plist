@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.codex.work-report-bot</string>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/thienlong/Desktop/Test Antigravity/BotAI-report</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>/Users/thienlong/Desktop/Test Antigravity/BotAI-report/bin/work-report-daemon.sh</string>
+  </array>
+
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PYTHONPATH</key>
+    <string>/Users/thienlong/Desktop/Test Antigravity/BotAI-report</string>
+    <key>PYTHONPYCACHEPREFIX</key>
+    <string>/Users/thienlong/Desktop/Test Antigravity/BotAI-report/data/pycache</string>
+    <key>WORK_REPORT_HTTP_TIMEOUT_SECONDS</key>
+    <string>30</string>
+    <key>WORK_REPORT_HTTP_RETRIES</key>
+    <string>1</string>
+  </dict>
+
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>KeepAlive</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/thienlong/Desktop/Test Antigravity/BotAI-report/data/daemon.out.log</string>
+
+  <key>StandardErrorPath</key>
+  <string>/Users/thienlong/Desktop/Test Antigravity/BotAI-report/data/daemon.err.log</string>
+</dict>
+</plist>

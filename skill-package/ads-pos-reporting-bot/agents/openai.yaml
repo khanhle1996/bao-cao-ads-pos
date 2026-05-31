@@ -1,0 +1,4 @@
+interface:
+  display_name: "Ads/POS Reporting Bot"
+  short_description: "Send branded Meta Ads and Pancake POS reports to Telegram."
+  default_prompt: "Send the 3/5/7-day Ads/POS report to the configured Telegram group, split by brand."

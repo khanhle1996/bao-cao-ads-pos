@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+
+# Data & logs
+data/daemon.*.log
+data/daemon.pid
+data/report_runs.sqlite3
+data/pycache/
+
+# Secrets (never commit)
+.env
+*.env
+
+# macOS
+.DS_Store
+
+# Build artifacts
+skill-package/*.zip

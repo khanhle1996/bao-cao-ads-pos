@@ -1,0 +1,19 @@
+{
+  "brands": [
+    {
+      "name": "Lysilk",
+      "ad_account_ids": ["333437301521518", "3219708974940795"],
+      "pos_shop_ids": ["638801"]
+    },
+    {
+      "name": "Jennie Choo",
+      "ad_account_ids": ["692061999078661"],
+      "pos_shop_ids": ["20094936"]
+    },
+    {
+      "name": "Say Studios",
+      "ad_account_ids": ["1738022036969927"],
+      "pos_shop_ids": ["2619361"]
+    }
+  ]
+}
