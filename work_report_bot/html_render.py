@@ -6,6 +6,7 @@ from decimal import Decimal
 from html import escape
 from zoneinfo import ZoneInfo
 
+from .meta import BillingInfo
 from .report import BrandWindowResult, WindowReport, _money, _percent, _ratio
 
 _TZ = ZoneInfo("Asia/Ho_Chi_Minh")
@@ -14,9 +15,10 @@ _TZ = ZoneInfo("Asia/Ho_Chi_Minh")
 def render_html(
     reports: tuple[WindowReport, ...],
     generated_at: datetime | None = None,
+    billing_data: list[BillingInfo] | None = None,
 ) -> str:
     try:
-        return _render(reports, generated_at)
+        return _render(reports, generated_at, billing_data or [])
     except Exception:
         tb = escape(traceback.format_exc())
         return f"""<!DOCTYPE html>
@@ -24,7 +26,7 @@ def render_html(
 <body><h1>Lỗi khi tạo trang báo cáo</h1><pre>{tb}</pre></body></html>"""
 
 
-def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None) -> str:
+def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None, billing_data: list[BillingInfo]) -> str:
     now = (generated_at or datetime.now(_TZ)).astimezone(_TZ)
     next_update = (now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1))
     generated_str = now.strftime("%H:%M %d/%m/%Y")
@@ -88,6 +90,10 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None) ->
     .roas-mid  {{ color: #e67e22; }}
     .roas-bad  {{ color: #e74c3c; }}
     .no-data   {{ color: #888; font-style: italic; padding: 20px 0; }}
+    .cards-5 {{ grid-template-columns: repeat(5, 1fr); }}
+    @media (max-width: 1300px) {{ .cards-5 {{ grid-template-columns: repeat(3, 1fr); }} }}
+    @media (max-width: 900px)  {{ .cards-5 {{ grid-template-columns: repeat(2, 1fr); }} }}
+    .threshold-warn {{ color: #e74c3c; font-weight: 700; }}
     footer {{ margin-top: 32px; font-size: 12px; color: #aaa; text-align: center; }}
   </style>
 </head>
@@ -101,6 +107,7 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None) ->
       </div>
     </header>
     {sections}
+    {_render_billing_section(billing_data)}
     <footer>Dữ liệu từ Meta Ads Manager &amp; Pancake POS · Tự động cập nhật mỗi 1 tiếng</footer>
   </div>
 </body>
@@ -196,3 +203,41 @@ def _roas_class(roas_str: str) -> str:
     if v >= 0.5:
         return "roas-mid"
     return "roas-bad"
+
+
+def _render_billing_section(billing_data: list[BillingInfo]) -> str:
+    if not billing_data:
+        return ""
+    cards = "".join(_billing_card(info) for info in billing_data)
+    return f"""
+<section class="brand">
+  <h2>💳 Ứng tiền Ads</h2>
+  <div class="cards cards-5">{cards}</div>
+</section>"""
+
+
+def _billing_card(info: BillingInfo) -> str:
+    remaining = info.remaining_cap
+    forecast = info.forecast_2days
+
+    if remaining is not None:
+        rem_class = ' class="threshold-warn"' if forecast > 0 and remaining < forecast else ""
+        rem_str = _fmt_money(remaining)
+    else:
+        rem_class = ""
+        rem_str = "—"
+
+    rows = f"""
+    <tr><td>📅 Hôm qua</td><td>{_fmt_money(info.yesterday_spend)}</td></tr>
+    <tr><td>⏱ Hôm nay</td><td>{_fmt_money(info.today_spend)}</td></tr>
+    <tr><td>🎯 Ngưỡng còn lại</td><td{rem_class}>{rem_str}</td></tr>
+    <tr><td>📊 Dự kiến 2 ngày</td><td>~{_fmt_money(forecast)}</td></tr>"""
+
+    warning = f'<div class="warning">⚠️ {escape(info.error)}</div>' if info.error else ""
+
+    return f"""
+<div class="card">
+  <div class="card-title">{escape(info.name)}</div>
+  <table>{rows}</table>
+  {warning}
+</div>"""

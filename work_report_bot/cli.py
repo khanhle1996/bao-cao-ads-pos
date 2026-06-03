@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 
 from .config import get_api_settings, get_settings
 from .html_render import render_html
-from .report import build_reports, render_telegram
+from .report import build_billing_data, build_reports, render_telegram
 from .scheduler import run_daemon
 from .telegram import send_messages
 
@@ -48,7 +48,8 @@ def cmd_generate_html(args: argparse.Namespace) -> int:
     settings = get_api_settings()
     now = datetime.now(ZoneInfo(settings.report_timezone))
     reports = build_reports(settings, args.windows, now)
-    html = render_html(reports, generated_at=now)
+    billing_data = build_billing_data(settings, now)
+    html = render_html(reports, generated_at=now, billing_data=billing_data)
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text(html, encoding="utf-8")

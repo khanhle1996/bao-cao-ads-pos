@@ -8,7 +8,7 @@ from html import escape
 from zoneinfo import ZoneInfo
 
 from .config import Settings
-from .meta import AdsMetrics, MetaClient
+from .meta import AdsMetrics, BillingInfo, MetaClient
 from .pancake import PancakeClient, PartialPosError, PosMetrics
 
 
@@ -127,6 +127,46 @@ def _fetch_pos(pancake: PancakeClient, shop_id: str, since: date, until: date) -
         return SourceResult(shop_id, exc.metrics, _safe_error(exc))
     except Exception as exc:
         return SourceResult(shop_id, PosMetrics(), _safe_error(exc))
+
+
+def build_billing_data(settings: Settings, now: datetime | None = None) -> list[BillingInfo]:
+    tz = ZoneInfo(settings.report_timezone)
+    current = now.astimezone(tz) if now else datetime.now(tz)
+    today = current.date()
+    meta = MetaClient(settings)
+
+    accounts = [(acc.name, acc.account_id) for acc in settings.billing_accounts if acc.account_id]
+    if not accounts:
+        return []
+
+    results: list[BillingInfo | None] = [None] * len(accounts)
+    with ThreadPoolExecutor(max_workers=len(accounts)) as executor:
+        futures = {
+            executor.submit(_fetch_billing, meta, name, account_id, today): i
+            for i, (name, account_id) in enumerate(accounts)
+        }
+        for future in as_completed(futures):
+            results[futures[future]] = future.result()
+
+    return [r for r in results if r is not None]
+
+
+def _fetch_billing(meta: MetaClient, name: str, account_id: str, today: date) -> BillingInfo:
+    from decimal import Decimal as D
+    try:
+        return meta.fetch_account_billing(account_id, name, today)
+    except Exception as exc:
+        return BillingInfo(
+            account_id=account_id,
+            name=name,
+            currency="VND",
+            yesterday_spend=D("0"),
+            today_spend=D("0"),
+            spend_cap=D("0"),
+            amount_spent=D("0"),
+            three_day_spend=D("0"),
+            error=_safe_error(exc),
+        )
 
 
 def render_telegram(slot_label: str, reports: tuple[WindowReport, ...], split_by_brand: bool = False) -> list[str]:

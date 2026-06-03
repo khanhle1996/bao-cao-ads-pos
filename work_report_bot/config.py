@@ -52,6 +52,12 @@ class Brand:
 
 
 @dataclass(frozen=True)
+class BillingAccount:
+    name: str
+    account_id: str
+
+
+@dataclass(frozen=True)
 class Settings:
     telegram_bot_token: str
     telegram_chat_id: str
@@ -65,6 +71,7 @@ class Settings:
     http_retries: int
     state_path: Path
     brands: tuple[Brand, ...]
+    billing_accounts: tuple[BillingAccount, ...] = ()
 
 
 def load_brands(path: Path = BRANDS_PATH) -> tuple[Brand, ...]:
@@ -81,6 +88,14 @@ def load_brands(path: Path = BRANDS_PATH) -> tuple[Brand, ...]:
     if not brands:
         raise RuntimeError("No brands configured")
     return tuple(brands)
+
+
+def load_billing_accounts(path: Path = BRANDS_PATH) -> tuple[BillingAccount, ...]:
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    return tuple(
+        BillingAccount(name=str(item["name"]), account_id=str(item.get("account_id", "")))
+        for item in payload.get("billing_accounts", [])
+    )
 
 
 def get_api_settings() -> Settings:
@@ -103,6 +118,7 @@ def get_api_settings() -> Settings:
         http_retries=int(_pick("WORK_REPORT_HTTP_RETRIES", fb_env, pos_env, default="1")),
         state_path=STATE_PATH,
         brands=load_brands(),
+        billing_accounts=load_billing_accounts(),
     )
 
 
@@ -133,4 +149,5 @@ def get_settings() -> Settings:
         http_retries=int(_pick("WORK_REPORT_HTTP_RETRIES", fb_env, pos_env, default="1")),
         state_path=STATE_PATH,
         brands=load_brands(),
+        billing_accounts=load_billing_accounts(),
     )
