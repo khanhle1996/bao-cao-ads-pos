@@ -94,6 +94,13 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None, bi
     @media (max-width: 1300px) {{ .cards-5 {{ grid-template-columns: repeat(3, 1fr); }} }}
     @media (max-width: 900px)  {{ .cards-5 {{ grid-template-columns: repeat(2, 1fr); }} }}
     .threshold-warn {{ color: #e74c3c; font-weight: 700; }}
+    .billing-input {{ display: flex; gap: 6px; margin-top: 12px; }}
+    .billing-input input {{ flex: 1; padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px;
+                            font-size: 13px; min-width: 0; }}
+    .billing-input input:focus {{ outline: none; border-color: #3498db; }}
+    .billing-input button {{ padding: 5px 12px; background: #3498db; color: #fff; border: none;
+                             border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap; }}
+    .billing-input button:hover {{ background: #2980b9; }}
     footer {{ margin-top: 32px; font-size: 12px; color: #aaa; text-align: center; }}
   </style>
 </head>
@@ -110,6 +117,7 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None, bi
     {_render_billing_section(billing_data)}
     <footer>Dữ liệu từ Meta Ads Manager &amp; Pancake POS · Tự động cập nhật mỗi 1 tiếng</footer>
   </div>
+  {_billing_js()}
 </body>
 </html>"""
 
@@ -205,6 +213,42 @@ def _roas_class(roas_str: str) -> str:
     return "roas-bad"
 
 
+def _billing_js() -> str:
+    return """<script>
+(function () {
+  function fmtVnd(n) {
+    return new Intl.NumberFormat('vi-VN').format(Math.round(n)) + ' VND';
+  }
+  function parsePending(s) {
+    return parseInt(s.replace(/[^\\d]/g, ''), 10) || 0;
+  }
+  function applyValue(card) {
+    var input = card.querySelector('.pending-input');
+    var remCell = card.querySelector('.remaining-val');
+    var threshold = parseInt(card.dataset.threshold, 10) || 0;
+    var forecast = parseInt(card.dataset.forecast, 10) || 0;
+    var pending = parsePending(input.value);
+    if (!pending || !threshold) return;
+    var remaining = Math.max(0, threshold - pending);
+    remCell.textContent = remaining > 0 ? fmtVnd(remaining) : '\\u2014';
+    var isWarn = forecast > 0 && remaining < forecast;
+    remCell.className = 'remaining-val' + (isWarn ? ' threshold-warn' : '');
+    try { localStorage.setItem('bp_' + card.dataset.accountId, input.value); } catch(e) {}
+  }
+  document.querySelectorAll('.billing-card').forEach(function (card) {
+    var input = card.querySelector('.pending-input');
+    var btn = card.querySelector('.done-btn');
+    try {
+      var saved = localStorage.getItem('bp_' + card.dataset.accountId);
+      if (saved) { input.value = saved; applyValue(card); }
+    } catch(e) {}
+    btn.addEventListener('click', function () { applyValue(card); });
+    input.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyValue(card); });
+  });
+}());
+</script>"""
+
+
 def _render_billing_section(billing_data: list[BillingInfo]) -> str:
     if not billing_data:
         return ""
@@ -221,10 +265,11 @@ def _billing_card(info: BillingInfo) -> str:
     forecast = info.forecast_2days
 
     if remaining is not None:
-        rem_class = ' class="threshold-warn"' if forecast > 0 and remaining < forecast else ""
+        is_warn = forecast > 0 and remaining < forecast
+        rem_class_attr = ' class="remaining-val threshold-warn"' if is_warn else ' class="remaining-val"'
         rem_str = _fmt_money(remaining)
     else:
-        rem_class = ""
+        rem_class_attr = ' class="remaining-val"'
         rem_str = "—"
 
     threshold_str = _fmt_money(info.billing_threshold) if info.billing_threshold > 0 else "—"
@@ -234,15 +279,19 @@ def _billing_card(info: BillingInfo) -> str:
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>📆 Tháng này</td><td>{_fmt_money(info.monthly_spend)}</td></tr>
     <tr><td>🎯 Ngưỡng</td><td>{threshold_str}</td></tr>
-    <tr><td>✅ Còn lại</td><td{rem_class}>{rem_str}</td></tr>
+    <tr><td>✅ Còn lại</td><td{rem_class_attr}>{rem_str}</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>📊 Dự kiến 2 ngày</td><td>~{_fmt_money(forecast)}</td></tr>"""
 
     warning = f'<div class="warning">⚠️ {escape(info.error)}</div>' if info.error else ""
 
     return f"""
-<div class="card">
+<div class="card billing-card" data-account-id="{escape(info.account_id)}" data-threshold="{int(info.billing_threshold)}" data-forecast="{int(forecast)}">
   <div class="card-title">{escape(info.name)}</div>
   <table>{rows}</table>
   {warning}
+  <div class="billing-input">
+    <input type="text" class="pending-input" placeholder="Số đang chờ thanh toán...">
+    <button class="done-btn">Xác nhận</button>
+  </div>
 </div>"""
