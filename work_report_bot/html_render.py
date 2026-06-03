@@ -58,7 +58,7 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None) ->
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
     body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
            background: #f5f6fa; color: #222; font-size: 15px; }}
-    .container {{ max-width: 1080px; margin: 0 auto; padding: 20px 16px 40px; }}
+    .container {{ max-width: 1500px; margin: 0 auto; padding: 20px 16px 40px; }}
     header {{ margin-bottom: 24px; }}
     header h1 {{ font-size: 22px; font-weight: 700; color: #1a1a2e; }}
     .meta {{ margin-top: 6px; font-size: 13px; color: #666; }}
@@ -67,7 +67,9 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None) ->
     section.brand h2 {{ font-size: 18px; font-weight: 600; color: #2c3e50;
                         border-left: 4px solid #3498db; padding-left: 10px;
                         margin-bottom: 12px; }}
-    .cards {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }}
+    .cards {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }}
+    @media (max-width: 1100px) {{ .cards {{ grid-template-columns: repeat(2, 1fr); }} }}
+    @media (max-width: 600px)  {{ .cards {{ grid-template-columns: 1fr; }} }}
     .card {{ background: #fff; border-radius: 10px; padding: 16px;
              box-shadow: 0 1px 6px rgba(0,0,0,.08); }}
     .card-title {{ font-size: 13px; font-weight: 600; color: #888;
