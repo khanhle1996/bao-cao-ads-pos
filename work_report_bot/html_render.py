@@ -93,7 +93,9 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None, bi
     .cards-5 {{ grid-template-columns: repeat(5, 1fr); }}
     @media (max-width: 1300px) {{ .cards-5 {{ grid-template-columns: repeat(3, 1fr); }} }}
     @media (max-width: 900px)  {{ .cards-5 {{ grid-template-columns: repeat(2, 1fr); }} }}
+    @media (max-width: 600px)  {{ .cards-5 {{ grid-template-columns: 1fr; }} }}
     .threshold-warn {{ color: #e74c3c; font-weight: 700; }}
+    .billing-card td:last-child {{ white-space: nowrap; }}
     .billing-input {{ display: flex; gap: 6px; margin-top: 12px; }}
     .billing-input input {{ flex: 1; padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px;
                             font-size: 13px; min-width: 0; }}

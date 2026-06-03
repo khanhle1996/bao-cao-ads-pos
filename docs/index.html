@@ -41,7 +41,9 @@
     .cards-5 { grid-template-columns: repeat(5, 1fr); }
     @media (max-width: 1300px) { .cards-5 { grid-template-columns: repeat(3, 1fr); } }
     @media (max-width: 900px)  { .cards-5 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 600px)  { .cards-5 { grid-template-columns: 1fr; } }
     .threshold-warn { color: #e74c3c; font-weight: 700; }
+    .billing-card td:last-child { white-space: nowrap; }
     .billing-input { display: flex; gap: 6px; margin-top: 12px; }
     .billing-input input { flex: 1; padding: 5px 8px; border: 1px solid #ddd; border-radius: 6px;
                             font-size: 13px; min-width: 0; }
@@ -57,7 +59,7 @@
     <header>
       <h1>📊 Báo cáo Ads/POS — Antigravity</h1>
       <div class="meta">
-        <span>🕐 Cập nhật lúc: <strong>17:48 03/06/2026</strong></span>
+        <span>🕐 Cập nhật lúc: <strong>17:54 03/06/2026</strong></span>
         <span>⏭ Dự kiến cập nhật: 18:00 03/06/2026</span>
       </div>
     </header>
@@ -68,7 +70,7 @@
 <div class="card">
   <div class="card-title">Hôm qua (2026-06-02)</div>
   <table>
-    <tr><td>💸 Chi phí Ads</td><td>4.422.433 VND</td></tr>
+    <tr><td>💸 Chi phí Ads</td><td>4.422.518 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>🧾 Doanh thu POS</td><td>22.365.685 VND</td></tr>
     <tr><td>📦 Số đơn POS</td><td>27</td></tr>
@@ -81,7 +83,7 @@
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>💬 Tin nhắn</td><td>130</td></tr>
     <tr><td>🛒 Mua Meta</td><td>16</td></tr></table>
-  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 3.693.275 VND; 3219708974940795: 729.158 VND<br>POS: 638801: 22.365.685 VND / 27 đơn</div></details>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 3.693.360 VND; 3219708974940795: 729.158 VND<br>POS: 638801: 22.365.685 VND / 27 đơn</div></details>
 </div>
 <div class="card">
   <div class="card-title">3 ngày (2026-05-31 – 2026-06-02)</div>
@@ -104,7 +106,7 @@
 <div class="card">
   <div class="card-title">5 ngày (2026-05-29 – 2026-06-02)</div>
   <table>
-    <tr><td>💸 Chi phí Ads</td><td>19.477.447 VND</td></tr>
+    <tr><td>💸 Chi phí Ads</td><td>19.477.532 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>🧾 Doanh thu POS</td><td>147.396.013 VND</td></tr>
     <tr><td>📦 Số đơn POS</td><td>156</td></tr>
@@ -117,12 +119,12 @@
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>💬 Tin nhắn</td><td>562</td></tr>
     <tr><td>🛒 Mua Meta</td><td>72</td></tr></table>
-  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 16.212.818 VND; 3219708974940795: 3.264.629 VND<br>POS: 638801: 147.396.013 VND / 156 đơn</div></details>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 16.212.903 VND; 3219708974940795: 3.264.629 VND<br>POS: 638801: 147.396.013 VND / 156 đơn</div></details>
 </div>
 <div class="card">
   <div class="card-title">7 ngày (2026-05-27 – 2026-06-02)</div>
   <table>
-    <tr><td>💸 Chi phí Ads</td><td>29.458.266 VND</td></tr>
+    <tr><td>💸 Chi phí Ads</td><td>29.458.351 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>🧾 Doanh thu POS</td><td>203.914.502 VND</td></tr>
     <tr><td>📦 Số đơn POS</td><td>217</td></tr>
@@ -135,7 +137,7 @@
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>💬 Tin nhắn</td><td>752</td></tr>
     <tr><td>🛒 Mua Meta</td><td>101</td></tr></table>
-  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 24.845.205 VND; 3219708974940795: 4.613.061 VND<br>POS: 638801: 203.914.502 VND / 217 đơn</div></details>
+  <details><summary>Chi tiết nguồn</summary><div class="breakdown">Ads: 333437301521518: 24.845.290 VND; 3219708974940795: 4.613.061 VND<br>POS: 638801: 203.914.502 VND / 217 đơn</div></details>
 </div></div>
 </section>
 <section class="brand">
@@ -294,17 +296,17 @@
 <section class="brand">
   <h2>💳 Ứng tiền Ads</h2>
   <div class="cards cards-5">
-<div class="card billing-card" data-account-id="333437301521518" data-threshold="27000000" data-forecast="7038655">
+<div class="card billing-card" data-account-id="333437301521518" data-threshold="27000000" data-forecast="7038712">
   <div class="card-title">Lysilk 1</div>
   <table>
-    <tr><td>📅 Hôm qua</td><td>3.693.275 VND</td></tr>
-    <tr><td>⏱ Hôm nay</td><td>2.827.107 VND</td></tr>
+    <tr><td>📅 Hôm qua</td><td>3.693.360 VND</td></tr>
+    <tr><td>⏱ Hôm nay</td><td>2.845.368 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
-    <tr><td>📆 Tháng này</td><td>9.936.906 VND</td></tr>
+    <tr><td>📆 Tháng này</td><td>9.955.252 VND</td></tr>
     <tr><td>🎯 Ngưỡng</td><td>27.000.000 VND</td></tr>
-    <tr><td>✅ Còn lại</td><td class="remaining-val">17.063.094 VND</td></tr>
+    <tr><td>✅ Còn lại</td><td class="remaining-val">17.044.748 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
-    <tr><td>📊 Dự kiến 2 ngày</td><td>~7.038.655 VND</td></tr></table>
+    <tr><td>📊 Dự kiến 2 ngày</td><td>~7.038.712 VND</td></tr></table>
   
   <div class="billing-input">
     <input type="text" class="pending-input" placeholder="Số đang chờ thanh toán...">
@@ -315,11 +317,11 @@
   <div class="card-title">Lysilk 2</div>
   <table>
     <tr><td>📅 Hôm qua</td><td>729.158 VND</td></tr>
-    <tr><td>⏱ Hôm nay</td><td>422.495 VND</td></tr>
+    <tr><td>⏱ Hôm nay</td><td>424.856 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
-    <tr><td>📆 Tháng này</td><td>1.840.814 VND</td></tr>
+    <tr><td>📆 Tháng này</td><td>1.843.175 VND</td></tr>
     <tr><td>🎯 Ngưỡng</td><td>20.000.000 VND</td></tr>
-    <tr><td>✅ Còn lại</td><td class="remaining-val">18.159.186 VND</td></tr>
+    <tr><td>✅ Còn lại</td><td class="remaining-val">18.156.825 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>📊 Dự kiến 2 ngày</td><td>~1.434.378 VND</td></tr></table>
   
@@ -332,9 +334,9 @@
   <div class="card-title">Jennie Choo</div>
   <table>
     <tr><td>📅 Hôm qua</td><td>33.182.254 VND</td></tr>
-    <tr><td>⏱ Hôm nay</td><td>18.226.935 VND</td></tr>
+    <tr><td>⏱ Hôm nay</td><td>18.445.941 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
-    <tr><td>📆 Tháng này</td><td>83.328.205 VND</td></tr>
+    <tr><td>📆 Tháng này</td><td>83.547.211 VND</td></tr>
     <tr><td>🎯 Ngưỡng</td><td>53.000.000 VND</td></tr>
     <tr><td>✅ Còn lại</td><td class="remaining-val threshold-warn">—</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
@@ -345,34 +347,34 @@
     <button class="done-btn">Xác nhận</button>
   </div>
 </div>
-<div class="card billing-card" data-account-id="1738022036969927" data-threshold="23000000" data-forecast="6137287">
+<div class="card billing-card" data-account-id="1738022036969927" data-threshold="23000000" data-forecast="6137391">
   <div class="card-title">Say Studios</div>
   <table>
-    <tr><td>📅 Hôm qua</td><td>2.908.322 VND</td></tr>
-    <tr><td>⏱ Hôm nay</td><td>1.905.319 VND</td></tr>
+    <tr><td>📅 Hôm qua</td><td>2.908.478 VND</td></tr>
+    <tr><td>⏱ Hôm nay</td><td>1.919.839 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
-    <tr><td>📆 Tháng này</td><td>7.637.994 VND</td></tr>
+    <tr><td>📆 Tháng này</td><td>7.652.670 VND</td></tr>
     <tr><td>🎯 Ngưỡng</td><td>23.000.000 VND</td></tr>
-    <tr><td>✅ Còn lại</td><td class="remaining-val">15.362.006 VND</td></tr>
+    <tr><td>✅ Còn lại</td><td class="remaining-val">15.347.330 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
-    <tr><td>📊 Dự kiến 2 ngày</td><td>~6.137.287 VND</td></tr></table>
+    <tr><td>📊 Dự kiến 2 ngày</td><td>~6.137.391 VND</td></tr></table>
   
   <div class="billing-input">
     <input type="text" class="pending-input" placeholder="Số đang chờ thanh toán...">
     <button class="done-btn">Xác nhận</button>
   </div>
 </div>
-<div class="card billing-card" data-account-id="404341798635756" data-threshold="2000000" data-forecast="2114341">
+<div class="card billing-card" data-account-id="404341798635756" data-threshold="2000000" data-forecast="2114352">
   <div class="card-title">Tuyển dụng</div>
   <table>
-    <tr><td>📅 Hôm qua</td><td>1.113.437 VND</td></tr>
-    <tr><td>⏱ Hôm nay</td><td>214.051 VND</td></tr>
+    <tr><td>📅 Hôm qua</td><td>1.113.453 VND</td></tr>
+    <tr><td>⏱ Hôm nay</td><td>218.603 VND</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
-    <tr><td>📆 Tháng này</td><td>2.421.409 VND</td></tr>
+    <tr><td>📆 Tháng này</td><td>2.425.977 VND</td></tr>
     <tr><td>🎯 Ngưỡng</td><td>2.000.000 VND</td></tr>
     <tr><td>✅ Còn lại</td><td class="remaining-val threshold-warn">—</td></tr>
     <tr><td colspan="2"><hr class="divider"></td></tr>
-    <tr><td>📊 Dự kiến 2 ngày</td><td>~2.114.341 VND</td></tr></table>
+    <tr><td>📊 Dự kiến 2 ngày</td><td>~2.114.352 VND</td></tr></table>
   
   <div class="billing-input">
     <input type="text" class="pending-input" placeholder="Số đang chờ thanh toán...">
