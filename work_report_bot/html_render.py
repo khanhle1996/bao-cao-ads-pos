@@ -227,10 +227,15 @@ def _billing_card(info: BillingInfo) -> str:
         rem_class = ""
         rem_str = "—"
 
+    threshold_str = _fmt_money(info.billing_threshold) if info.billing_threshold > 0 else "—"
     rows = f"""
     <tr><td>📅 Hôm qua</td><td>{_fmt_money(info.yesterday_spend)}</td></tr>
     <tr><td>⏱ Hôm nay</td><td>{_fmt_money(info.today_spend)}</td></tr>
-    <tr><td>🎯 Ngưỡng còn lại</td><td{rem_class}>{rem_str}</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
+    <tr><td>📆 Tháng này</td><td>{_fmt_money(info.monthly_spend)}</td></tr>
+    <tr><td>🎯 Ngưỡng</td><td>{threshold_str}</td></tr>
+    <tr><td>✅ Còn lại</td><td{rem_class}>{rem_str}</td></tr>
+    <tr><td colspan="2"><hr class="divider"></td></tr>
     <tr><td>📊 Dự kiến 2 ngày</td><td>~{_fmt_money(forecast)}</td></tr>"""
 
     warning = f'<div class="warning">⚠️ {escape(info.error)}</div>' if info.error else ""

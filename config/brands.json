@@ -17,10 +17,10 @@
     }
   ],
   "billing_accounts": [
-    {"name": "Lysilk 1",    "account_id": "333437301521518"},
-    {"name": "Lysilk 2",    "account_id": "3219708974940795"},
-    {"name": "Jennie Choo", "account_id": "692061999078661"},
-    {"name": "Say Studios", "account_id": "1738022036969927"},
-    {"name": "Tuyển dụng",  "account_id": "404341798635756"}
+    {"name": "Lysilk 1",    "account_id": "333437301521518",   "billing_threshold": 27000000},
+    {"name": "Lysilk 2",    "account_id": "3219708974940795",  "billing_threshold": 20000000},
+    {"name": "Jennie Choo", "account_id": "692061999078661",   "billing_threshold": 53000000},
+    {"name": "Say Studios", "account_id": "1738022036969927",  "billing_threshold": 23000000},
+    {"name": "Tuyển dụng",  "account_id": "404341798635756",   "billing_threshold": 2000000}
   ]
 }

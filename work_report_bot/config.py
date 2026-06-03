@@ -55,6 +55,7 @@ class Brand:
 class BillingAccount:
     name: str
     account_id: str
+    billing_threshold: int = 0
 
 
 @dataclass(frozen=True)
@@ -93,7 +94,11 @@ def load_brands(path: Path = BRANDS_PATH) -> tuple[Brand, ...]:
 def load_billing_accounts(path: Path = BRANDS_PATH) -> tuple[BillingAccount, ...]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     return tuple(
-        BillingAccount(name=str(item["name"]), account_id=str(item.get("account_id", "")))
+        BillingAccount(
+            name=str(item["name"]),
+            account_id=str(item.get("account_id", "")),
+            billing_threshold=int(item.get("billing_threshold", 0)),
+        )
         for item in payload.get("billing_accounts", [])
     )
 

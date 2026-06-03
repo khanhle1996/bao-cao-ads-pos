@@ -135,15 +135,18 @@ def build_billing_data(settings: Settings, now: datetime | None = None) -> list[
     today = current.date()
     meta = MetaClient(settings)
 
-    accounts = [(acc.name, acc.account_id) for acc in settings.billing_accounts if acc.account_id]
+    accounts = [
+        (acc.name, acc.account_id, acc.billing_threshold)
+        for acc in settings.billing_accounts if acc.account_id
+    ]
     if not accounts:
         return []
 
     results: list[BillingInfo | None] = [None] * len(accounts)
     with ThreadPoolExecutor(max_workers=len(accounts)) as executor:
         futures = {
-            executor.submit(_fetch_billing, meta, name, account_id, today): i
-            for i, (name, account_id) in enumerate(accounts)
+            executor.submit(_fetch_billing, meta, name, account_id, threshold, today): i
+            for i, (name, account_id, threshold) in enumerate(accounts)
         }
         for future in as_completed(futures):
             results[futures[future]] = future.result()
@@ -151,10 +154,10 @@ def build_billing_data(settings: Settings, now: datetime | None = None) -> list[
     return [r for r in results if r is not None]
 
 
-def _fetch_billing(meta: MetaClient, name: str, account_id: str, today: date) -> BillingInfo:
+def _fetch_billing(meta: MetaClient, name: str, account_id: str, billing_threshold: int, today: date) -> BillingInfo:
     from decimal import Decimal as D
     try:
-        return meta.fetch_account_billing(account_id, name, today)
+        return meta.fetch_account_billing(account_id, name, D(str(billing_threshold)), today)
     except Exception as exc:
         return BillingInfo(
             account_id=account_id,
@@ -162,8 +165,8 @@ def _fetch_billing(meta: MetaClient, name: str, account_id: str, today: date) ->
             currency="VND",
             yesterday_spend=D("0"),
             today_spend=D("0"),
-            spend_cap=D("0"),
-            amount_spent=D("0"),
+            billing_threshold=D(str(billing_threshold)),
+            monthly_spend=D("0"),
             three_day_spend=D("0"),
             error=_safe_error(exc),
         )

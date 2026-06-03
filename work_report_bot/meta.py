@@ -41,16 +41,16 @@ class BillingInfo:
     currency: str
     yesterday_spend: Decimal
     today_spend: Decimal
-    spend_cap: Decimal
-    amount_spent: Decimal
+    billing_threshold: Decimal
+    monthly_spend: Decimal
     three_day_spend: Decimal
     error: str | None = None
 
     @property
     def remaining_cap(self) -> Decimal | None:
-        """Remaining spend cap. None if no cap is set (spend_cap == 0)."""
-        if self.spend_cap > 0:
-            return max(Decimal("0"), self.spend_cap - self.amount_spent)
+        """Remaining threshold = billing_threshold - monthly_spend. None if threshold not set."""
+        if self.billing_threshold > 0:
+            return max(Decimal("0"), self.billing_threshold - self.monthly_spend)
         return None
 
     @property
@@ -65,37 +65,16 @@ class MetaClient:
         self.settings = settings
         self.base_url = f"https://graph.facebook.com/{settings.meta_api_version}"
 
-    def _fetch_account_info(self, account: str) -> dict[str, Any]:
-        return get_json(
-            f"{self.base_url}/{account}",
-            {
-                "access_token": self.settings.meta_access_token,
-                "fields": "name,currency,spend_cap,amount_spent",
-            },
-            timeout=self.settings.http_timeout_seconds,
-            retries=self.settings.http_retries,
-        )
-
-    def fetch_account_billing(self, account_id: str, name: str, today: date) -> BillingInfo:
-        account = account_id if account_id.startswith("act_") else f"act_{account_id}"
+    def fetch_account_billing(self, account_id: str, name: str, billing_threshold: Decimal, today: date) -> BillingInfo:
         yesterday = today - timedelta(days=1)
         three_days_ago = today - timedelta(days=3)
+        since_month = today.replace(day=1)
 
         with ThreadPoolExecutor(max_workers=4) as executor:
-            f_info = executor.submit(self._fetch_account_info, account)
             f_yest = executor.submit(self.account_insights, account_id, yesterday, yesterday)
             f_today = executor.submit(self.account_insights, account_id, today, today)
             f_3day = executor.submit(self.account_insights, account_id, three_days_ago, yesterday)
-
-        try:
-            info = f_info.result()
-            currency = str(info.get("currency", "VND"))
-            spend_cap = _decimal(info.get("spend_cap", "0"))
-            amount_spent = _decimal(info.get("amount_spent", "0"))
-        except Exception:
-            currency = "VND"
-            spend_cap = Decimal("0")
-            amount_spent = Decimal("0")
+            f_month = executor.submit(self.account_insights, account_id, since_month, today)
 
         def _spend(f) -> Decimal:  # noqa: ANN001
             try:
@@ -106,11 +85,11 @@ class MetaClient:
         return BillingInfo(
             account_id=account_id,
             name=name,
-            currency=currency,
+            currency="VND",
             yesterday_spend=_spend(f_yest),
             today_spend=_spend(f_today),
-            spend_cap=spend_cap,
-            amount_spent=amount_spent,
+            billing_threshold=billing_threshold,
+            monthly_spend=_spend(f_month),
             three_day_spend=_spend(f_3day),
         )
 
