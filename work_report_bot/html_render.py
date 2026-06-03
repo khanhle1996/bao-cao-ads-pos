@@ -108,7 +108,10 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None) ->
 def _window_card(report: WindowReport, brand: BrandWindowResult) -> str:
     ads = brand.ads_total
     pos = brand.pos_total
-    title = f"{report.days} ngày ({report.since.isoformat()} – {report.until.isoformat()})"
+    if report.days == 1:
+        title = f"Hôm qua ({report.since.isoformat()})"
+    else:
+        title = f"{report.days} ngày ({report.since.isoformat()} – {report.until.isoformat()})"
 
     pos_roas_val = _ratio(pos.revenue, ads.spend)
     ads_roas_val = _ratio(ads.meta_revenue, ads.spend)

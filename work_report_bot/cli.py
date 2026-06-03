@@ -73,7 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
     daemon.set_defaults(func=cmd_daemon)
 
     gen_html = sub.add_parser("generate-html", help="Generate static HTML dashboard to docs/index.html.")
-    gen_html.add_argument("--windows", type=parse_windows, default=(3, 5, 7))
+    gen_html.add_argument("--windows", type=parse_windows, default=(1, 3, 5, 7))
     gen_html.add_argument("--output", default="docs/index.html", help="Output file path.")
     gen_html.set_defaults(func=cmd_generate_html)
 

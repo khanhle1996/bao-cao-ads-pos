@@ -57,11 +57,12 @@ def build_reports(settings: Settings, windows: tuple[int, ...], now: datetime | 
     meta = MetaClient(settings)
     pancake = PancakeClient(settings)
     reports: list[WindowReport | None] = [None] * len(windows)
+    yesterday = today - timedelta(days=1)
     with ThreadPoolExecutor(max_workers=max(1, len(windows))) as executor:
         futures = {}
         for index, days in enumerate(windows):
-            since = today - timedelta(days=max(days, 1) - 1)
-            future = executor.submit(_build_window_report, settings, meta, pancake, days, since, today)
+            since = yesterday - timedelta(days=max(days, 1) - 1)
+            future = executor.submit(_build_window_report, settings, meta, pancake, days, since, yesterday)
             futures[future] = index
         for future in as_completed(futures):
             reports[futures[future]] = future.result()
