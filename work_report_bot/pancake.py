@@ -141,8 +141,8 @@ def _extract_records(payload: dict[str, Any], keys: tuple[str, ...]) -> list[dic
 #   '' (rỗng)   = không có status                    → giữ (an toàn)
 _NUMERIC_HARD_EXCLUDE = frozenset({"0", "1", "2", "9"})
 
-# Status đã xác nhận (dùng để tìm ngày xác nhận trong status_history)
-_NUMERIC_CONFIRMED = frozenset({"3", "4", "5", "6", "8", "11", "13", "15"})
+# Status dùng để tìm ngày xác nhận trong status_history (KHÔNG bao gồm 8 — tránh lấy nhầm ngày hoàn)
+_NUMERIC_CONFIRMED = frozenset({"3", "4", "5", "6", "11", "13", "15"})
 
 # Fallback cho hệ thống trả text thay vì số
 _TEXT_CANCEL_SUB  = ("hủy", "huy", "cancel")
@@ -213,7 +213,7 @@ def _created_date(order: dict[str, Any]) -> date | None:
 
 
 def _confirmed_date(order: dict[str, Any]) -> date | None:
-    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận (3,4,5,6,8,11,13,15) từ status_history."""
+    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận (3,4,5,6,11,13,15) từ status_history."""
     history = order.get("status_history")
     if isinstance(history, list):
         confirmed_times: list[datetime] = []
