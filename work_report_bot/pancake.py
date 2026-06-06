@@ -237,7 +237,8 @@ def _confirmed_date(order: dict[str, Any]) -> date | None:
 
 
 def _effective_date(order: dict[str, Any]) -> date | None:
-    return _confirmed_date(order)
+    # Pancake dashboard dùng ngày tạo đơn (inserted_at) để gán đơn vào ngày
+    return _created_date(order)
 
 
 def _total(order: dict[str, Any]) -> Decimal:
