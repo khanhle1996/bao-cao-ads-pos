@@ -206,14 +206,22 @@ def _total(order: dict[str, Any]) -> Decimal:
 
 
 def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
+    import sys
+    from collections import Counter
+    status_counter: Counter[str] = Counter()
     orders = []
     for record in records:
         created = _created_date(record)
         if created is not None and not (since <= created <= until):
             continue
+        s = str(record.get("status") or record.get("order_status") or "").strip()
+        status_counter[s] += 1
         if not _is_fulfilled(record):
             continue
         orders.append(record)
+    # Log phân bổ status để xác định mapping số → tên trạng thái
+    print(f"[pancake-status-count] total={sum(status_counter.values())} accepted={len(orders)} "
+          f"dist={dict(sorted(status_counter.items()))}", file=sys.stderr, flush=True)
     return PosMetrics(orders=len(orders), revenue=sum((_total(order) for order in orders), Decimal("0")))
 
 
