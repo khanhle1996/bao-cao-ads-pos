@@ -207,24 +207,28 @@ def _total(order: dict[str, Any]) -> Decimal:
     )
 
 
+_date_keys_logged = False
+
+
 def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
     import sys
-    n_api = len(records)
-    n_date_drop = 0
+    global _date_keys_logged
+    # Log tên các field ngày có trong đơn hàng thực tế (chỉ log 1 lần)
+    if not _date_keys_logged and records:
+        sample = records[0]
+        date_keys = [k for k in sample if "date" in k.lower() or "time" in k.lower()
+                     or "at" in k.lower() or "update" in k.lower() or "confirm" in k.lower()]
+        print(f"[pos-date-fields] {sorted(date_keys)}", file=sys.stderr, flush=True)
+        _date_keys_logged = True
+
     orders = []
     for record in records:
         created = _created_date(record)
         if created is not None and not (since <= created <= until):
-            n_date_drop += 1
             continue
         if not _is_fulfilled(record):
             continue
         orders.append(record)
-    print(
-        f"[pos-debug] {since}→{until} api={n_api} date_dropped={n_date_drop} "
-        f"status_kept={len(orders)}",
-        file=sys.stderr, flush=True,
-    )
     return PosMetrics(orders=len(orders), revenue=sum((_total(order) for order in orders), Decimal("0")))
 
 
