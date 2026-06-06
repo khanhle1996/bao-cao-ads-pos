@@ -130,6 +130,35 @@ def _extract_records(payload: dict[str, Any], keys: tuple[str, ...]) -> list[dic
     return []
 
 
+# Trạng thái được tính là "đã chốt" — khớp cấu hình Pancake "Đã xác nhận"
+# Exact: status khớp chính xác toàn bộ chuỗi (case-insensitive)
+_FULFILLED_EXACT = frozenset({
+    "xác nhận", "xac nhan", "confirmed",
+    "delivered", "success", "complete", "completed", "done",
+    "hoàn thành", "hoan thanh", "chốt", "chot",
+})
+# Contains: status chứa cụm này (dùng cho status có tiền tố "đã ...")
+_FULFILLED_CONTAINS = (
+    "đã xác nhận", "da xac nhan",
+    "đã giao", "da giao",
+    "đã hoàn thành", "hoàn thành", "hoan thanh",
+)
+# Trạng thái bị loại (hoàn trả, hủy)
+_CANCELLED_EXACT = frozenset({
+    "đã hoàn", "da hoan", "returned", "return", "refunded", "refund",
+    "đã hủy", "da huy", "cancelled", "canceled", "cancel", "hủy", "huy",
+})
+
+
+def _is_fulfilled(order: dict[str, Any]) -> bool:
+    s = str(order.get("status") or order.get("order_status") or "").strip().lower()
+    if not s:
+        return False
+    if s in _CANCELLED_EXACT:
+        return False
+    return s in _FULFILLED_EXACT or any(kw in s for kw in _FULFILLED_CONTAINS)
+
+
 def _decimal(value: Any) -> Decimal:
     try:
         return Decimal(str(value or "0").replace(",", "").strip() or "0")
@@ -165,11 +194,14 @@ def _created_date(order: dict[str, Any]) -> date | None:
 
 
 def _total(order: dict[str, Any]) -> Decimal:
+    # Ưu tiên sub_total (tiền hàng thuần, không bao gồm ship khách trả)
+    # Fallback về total_price nếu không có sub_total
+    # Tránh dùng cod/money_to_collect vì bao gồm tiền ship khách trả
     return _decimal(
-        order.get("total_price")
+        order.get("sub_total")
+        or order.get("subtotal")
+        or order.get("total_price")
         or order.get("total")
-        or order.get("cod")
-        or order.get("money_to_collect")
     )
 
 
@@ -177,8 +209,11 @@ def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date)
     orders = []
     for record in records:
         created = _created_date(record)
-        if created is None or since <= created <= until:
-            orders.append(record)
+        if created is not None and not (since <= created <= until):
+            continue
+        if not _is_fulfilled(record):
+            continue
+        orders.append(record)
     return PosMetrics(orders=len(orders), revenue=sum((_total(order) for order in orders), Decimal("0")))
 
 
