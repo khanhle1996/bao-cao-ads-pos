@@ -212,12 +212,8 @@ def _created_date(order: dict[str, Any]) -> date | None:
     return created.date() if created else None
 
 
-_HCM = timedelta(hours=7)
-
-
 def _confirmed_date(order: dict[str, Any]) -> date | None:
-    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận (3,4,5,6,11,13,15) từ status_history.
-    status_history.updated_at lưu dạng UTC naive → cộng +7h để ra ngày HCM."""
+    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận (3,4,5,6,11,13,15) từ status_history."""
     history = order.get("status_history")
     if isinstance(history, list):
         confirmed_times: list[datetime] = []
@@ -229,14 +225,11 @@ def _confirmed_date(order: dict[str, Any]) -> date | None:
                 for time_key in ("updated_at", "created_at", "inserted_at", "time"):
                     dt = _parse_datetime(entry.get(time_key))
                     if dt:
-                        # status_history timestamps là UTC naive → convert sang HCM
-                        if dt.tzinfo is None:
-                            dt = dt + _HCM
                         confirmed_times.append(dt)
                         break
         if confirmed_times:
             return min(confirmed_times).date()
-    # Fallback: last_update_status_at (trường chính trên order — HCM naive, dùng as-is)
+    # Fallback: last_update_status_at nếu không có history hợp lệ
     dt = _parse_datetime(order.get("last_update_status_at"))
     if dt:
         return dt.date()
