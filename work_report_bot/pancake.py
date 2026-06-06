@@ -195,13 +195,39 @@ def _created_date(order: dict[str, Any]) -> date | None:
     return created.date() if created else None
 
 
-def _effective_date(order: dict[str, Any]) -> date | None:
-    # Dùng last_update_status_at (ngày chốt đơn / xác nhận) nếu có,
-    # fallback về ngày tạo đơn. Khớp với cách Pancake tính "đã xác nhận trong ngày".
-    status_update = _parse_datetime(order.get("last_update_status_at"))
-    if status_update:
-        return status_update.date()
+_history_logged = False
+
+
+def _confirmed_date(order: dict[str, Any]) -> date | None:
+    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận, lấy từ status_history."""
+    global _history_logged
+    history = order.get("status_history")
+    if not _history_logged:
+        import sys
+        print(f"[pos-history-sample] type={type(history).__name__} val={str(history)[:200]}", file=sys.stderr, flush=True)
+        _history_logged = True
+    if isinstance(history, list):
+        confirmed_times: list[datetime] = []
+        for entry in history:
+            if not isinstance(entry, dict):
+                continue
+            raw_status = str(entry.get("status") or "").strip()
+            if raw_status.isdigit() and raw_status not in _NUMERIC_EXCLUDE:
+                for time_key in ("created_at", "inserted_at", "updated_at", "time"):
+                    dt = _parse_datetime(entry.get(time_key))
+                    if dt:
+                        confirmed_times.append(dt)
+                        break
+        if confirmed_times:
+            return min(confirmed_times).date()
+    dt = _parse_datetime(order.get("last_update_status_at"))
+    if dt:
+        return dt.date()
     return _created_date(order)
+
+
+def _effective_date(order: dict[str, Any]) -> date | None:
+    return _confirmed_date(order)
 
 
 def _total(order: dict[str, Any]) -> Decimal:
