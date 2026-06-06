@@ -132,35 +132,48 @@ def _extract_records(payload: dict[str, Any], keys: tuple[str, ...]) -> list[dic
 
 # Pancake dùng mã số cho status (không phải text).
 # Mapping xác nhận qua phân tích log thực tế:
-#   0           = mới nhận (initial receipt)         → loại (chưa xác nhận)
+#   0           = mới nhận (initial receipt)         → loại
 #   1, 2        = chưa xác nhận (mới / chờ xử lý)  → loại
-#   8           = đã hoàn trả                        → loại
 #   9           = đã hủy                             → loại
+#   8           = đã hoàn trả — GIỮ nếu đơn đã từng xác nhận trước đó
+#                 (Pancake config: "Hoàn trả trừ khi Chốt đơn" — chưa chốt = vẫn tính DT)
 #   3,4,5,6,11,13,15 = đã xác nhận trở lên          → giữ
 #   '' (rỗng)   = không có status                    → giữ (an toàn)
-_NUMERIC_EXCLUDE = frozenset({"0", "1", "2", "8", "9"})
+_NUMERIC_HARD_EXCLUDE = frozenset({"0", "1", "2", "9"})
 
 # Status đã xác nhận (dùng để tìm ngày xác nhận trong status_history)
-_NUMERIC_CONFIRMED = frozenset({"3", "4", "5", "6", "11", "13", "15"})
+_NUMERIC_CONFIRMED = frozenset({"3", "4", "5", "6", "8", "11", "13", "15"})
 
 # Fallback cho hệ thống trả text thay vì số
-_TEXT_CANCEL_SUB  = ("hoàn", "hoan", "hủy", "huy", "cancel", "return", "refund")
-_TEXT_CANCEL_SAFE = ("hoàn thành", "hoan thanh")   # "hoàn thành" ≠ hoàn trả
+_TEXT_CANCEL_SUB  = ("hủy", "huy", "cancel")
 _TEXT_PENDING     = frozenset({"new", "pending", "draft", "waiting", "chờ xác nhận", "chờ xử lý"})
 
 
 def _is_fulfilled(order: dict[str, Any]) -> bool:
     raw = str(order.get("status") or order.get("order_status") or "").strip()
     if not raw:
-        return True  # không có status → giữ như code gốc
+        return True  # không có status → giữ
     # Numeric status (Pancake thực tế)
     if raw.isdigit():
-        return raw not in _NUMERIC_EXCLUDE
+        if raw in _NUMERIC_HARD_EXCLUDE:
+            return False
+        # Status 8 (hoàn trả): chỉ tính nếu đơn đã từng được xác nhận trước đó
+        # (chưa "chốt đơn" nên chưa trừ khỏi doanh thu per Pancake config)
+        if raw == "8":
+            history = order.get("status_history")
+            if isinstance(history, list):
+                for entry in history:
+                    if isinstance(entry, dict):
+                        rs = str(entry.get("status") or "").strip()
+                        if rs in _NUMERIC_CONFIRMED and rs != "8":
+                            return True
+            return False
+        return True
     # Text status (fallback)
     s = raw.lower()
     if s in _TEXT_PENDING:
         return False
-    if any(kw in s for kw in _TEXT_CANCEL_SUB) and not any(ok in s for ok in _TEXT_CANCEL_SAFE):
+    if any(kw in s for kw in _TEXT_CANCEL_SUB):
         return False
     return True
 
@@ -200,8 +213,7 @@ def _created_date(order: dict[str, Any]) -> date | None:
 
 
 def _confirmed_date(order: dict[str, Any]) -> date | None:
-    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận (3,4,5,6,11,13,15) từ status_history.
-    Khớp với cách Pancake dashboard tính 'Doanh thu theo ngày xác nhận'."""
+    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận (3,4,5,6,8,11,13,15) từ status_history."""
     history = order.get("status_history")
     if isinstance(history, list):
         confirmed_times: list[datetime] = []
