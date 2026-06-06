@@ -195,6 +195,15 @@ def _created_date(order: dict[str, Any]) -> date | None:
     return created.date() if created else None
 
 
+def _effective_date(order: dict[str, Any]) -> date | None:
+    # Dùng last_update_status_at (ngày chốt đơn / xác nhận) nếu có,
+    # fallback về ngày tạo đơn. Khớp với cách Pancake tính "đã xác nhận trong ngày".
+    status_update = _parse_datetime(order.get("last_update_status_at"))
+    if status_update:
+        return status_update.date()
+    return _created_date(order)
+
+
 def _total(order: dict[str, Any]) -> Decimal:
     # Ưu tiên sub_total (tiền hàng thuần, không bao gồm ship khách trả)
     # Fallback về total_price nếu không có sub_total
@@ -207,24 +216,11 @@ def _total(order: dict[str, Any]) -> Decimal:
     )
 
 
-_date_keys_logged = False
-
-
 def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
-    import sys
-    global _date_keys_logged
-    # Log tên các field ngày có trong đơn hàng thực tế (chỉ log 1 lần)
-    if not _date_keys_logged and records:
-        sample = records[0]
-        date_keys = [k for k in sample if "date" in k.lower() or "time" in k.lower()
-                     or "at" in k.lower() or "update" in k.lower() or "confirm" in k.lower()]
-        print(f"[pos-date-fields] {sorted(date_keys)}", file=sys.stderr, flush=True)
-        _date_keys_logged = True
-
     orders = []
     for record in records:
-        created = _created_date(record)
-        if created is not None and not (since <= created <= until):
+        effective = _effective_date(record)
+        if effective is not None and not (since <= effective <= until):
             continue
         if not _is_fulfilled(record):
             continue
