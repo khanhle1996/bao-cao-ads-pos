@@ -236,11 +236,6 @@ def _confirmed_date(order: dict[str, Any]) -> date | None:
     return _created_date(order)
 
 
-def _effective_date(order: dict[str, Any]) -> date | None:
-    # Pancake dashboard dùng ngày tạo đơn (inserted_at) để gán đơn vào ngày
-    return _created_date(order)
-
-
 def _total(order: dict[str, Any]) -> Decimal:
     # Ưu tiên sub_total (tiền hàng thuần, không bao gồm ship khách trả)
     # Fallback về total_price nếu không có sub_total
@@ -253,11 +248,22 @@ def _total(order: dict[str, Any]) -> Decimal:
     )
 
 
+def _in_window(order: dict[str, Any], since: date, until: date) -> bool:
+    # Pancake tính đơn vào ngày D nếu ngày tạo HOẶC ngày xác nhận đầu tiên nằm trong [since, until].
+    # Đơn không có ngày nào → giữ (an toàn, không có thông tin để loại).
+    created = _created_date(order)
+    confirmed = _confirmed_date(order)
+    if created is None and confirmed is None:
+        return True
+    return (created is not None and since <= created <= until) or (
+        confirmed is not None and since <= confirmed <= until
+    )
+
+
 def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
     orders = []
     for record in records:
-        effective = _effective_date(record)
-        if effective is not None and not (since <= effective <= until):
+        if not _in_window(record, since, until):
             continue
         if not _is_fulfilled(record):
             continue
