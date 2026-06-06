@@ -266,13 +266,37 @@ def _in_window(order: dict[str, Any], since: date, until: date) -> bool:
 
 
 def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
+    from collections import Counter
     orders = []
+    status_out: Counter = Counter()
+    date_detail = {"created_only": 0, "confirmed_only": 0, "both": 0, "neither_kept": 0, "out": 0}
     for record in records:
-        if not _in_window(record, since, until):
+        created = _created_date(record)
+        confirmed = _confirmed_date(record)
+        c_in = created is not None and since <= created <= until
+        k_in = confirmed is not None and since <= confirmed <= until
+        in_win = c_in or k_in or (created is None and confirmed is None)
+        if not in_win:
+            date_detail["out"] += 1
             continue
+        if c_in and k_in:
+            date_detail["both"] += 1
+        elif c_in:
+            date_detail["created_only"] += 1
+        elif k_in:
+            date_detail["confirmed_only"] += 1
+        else:
+            date_detail["neither_kept"] += 1
         if not _is_fulfilled(record):
+            raw = str(record.get("status") or record.get("order_status") or "").strip()
+            status_out[raw] += 1
             continue
         orders.append(record)
+    print(
+        f"[pos-filter] {since}→{until} in_window={sum(v for k,v in date_detail.items() if k!='out')} "
+        f"({date_detail}) status_out={dict(status_out)} kept={len(orders)}",
+        file=sys.stderr,
+    )
     return PosMetrics(orders=len(orders), revenue=sum((_total(order) for order in orders), Decimal("0")))
 
 
