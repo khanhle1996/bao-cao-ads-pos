@@ -132,12 +132,16 @@ def _extract_records(payload: dict[str, Any], keys: tuple[str, ...]) -> list[dic
 
 # Pancake dùng mã số cho status (không phải text).
 # Mapping xác nhận qua phân tích log thực tế:
+#   0           = mới nhận (initial receipt)         → loại (chưa xác nhận)
 #   1, 2        = chưa xác nhận (mới / chờ xử lý)  → loại
 #   8           = đã hoàn trả                        → loại
 #   9           = đã hủy                             → loại
 #   3,4,5,6,11,13,15 = đã xác nhận trở lên          → giữ
 #   '' (rỗng)   = không có status                    → giữ (an toàn)
-_NUMERIC_EXCLUDE = frozenset({"1", "2", "8", "9"})
+_NUMERIC_EXCLUDE = frozenset({"0", "1", "2", "8", "9"})
+
+# Status đã xác nhận (dùng để tìm ngày xác nhận trong status_history)
+_NUMERIC_CONFIRMED = frozenset({"3", "4", "5", "6", "11", "13", "15"})
 
 # Fallback cho hệ thống trả text thay vì số
 _TEXT_CANCEL_SUB  = ("hoàn", "hoan", "hủy", "huy", "cancel", "return", "refund")
@@ -195,31 +199,25 @@ def _created_date(order: dict[str, Any]) -> date | None:
     return created.date() if created else None
 
 
-_history_logged = False
-
-
 def _confirmed_date(order: dict[str, Any]) -> date | None:
-    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận, lấy từ status_history."""
-    global _history_logged
+    """Ngày đơn đầu tiên đạt trạng thái đã xác nhận (3,4,5,6,11,13,15) từ status_history.
+    Khớp với cách Pancake dashboard tính 'Doanh thu theo ngày xác nhận'."""
     history = order.get("status_history")
-    if not _history_logged:
-        import sys
-        print(f"[pos-history-sample] type={type(history).__name__} val={str(history)[:200]}", file=sys.stderr, flush=True)
-        _history_logged = True
     if isinstance(history, list):
         confirmed_times: list[datetime] = []
         for entry in history:
             if not isinstance(entry, dict):
                 continue
             raw_status = str(entry.get("status") or "").strip()
-            if raw_status.isdigit() and raw_status not in _NUMERIC_EXCLUDE:
-                for time_key in ("created_at", "inserted_at", "updated_at", "time"):
+            if raw_status in _NUMERIC_CONFIRMED:
+                for time_key in ("updated_at", "created_at", "inserted_at", "time"):
                     dt = _parse_datetime(entry.get(time_key))
                     if dt:
                         confirmed_times.append(dt)
                         break
         if confirmed_times:
             return min(confirmed_times).date()
+    # Fallback: last_update_status_at nếu không có history hợp lệ
     dt = _parse_datetime(order.get("last_update_status_at"))
     if dt:
         return dt.date()
