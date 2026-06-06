@@ -130,33 +130,33 @@ def _extract_records(payload: dict[str, Any], keys: tuple[str, ...]) -> list[dic
     return []
 
 
-# Trạng thái được tính là "đã chốt" — khớp cấu hình Pancake "Đã xác nhận"
-# Exact: status khớp chính xác toàn bộ chuỗi (case-insensitive)
-_FULFILLED_EXACT = frozenset({
-    "xác nhận", "xac nhan", "confirmed",
-    "delivered", "success", "complete", "completed", "done",
-    "hoàn thành", "hoan thanh", "chốt", "chot",
+# Deny-list: chỉ loại đơn hoàn/hủy rõ ràng, giữ tất cả trạng thái còn lại.
+# "hoàn thành" KHÔNG phải hoàn trả → được whitelist.
+_CANCEL_SUBSTRINGS = ("hoàn", "hoan", "hủy", "huy", "cancel", "return", "refund")
+_CANCEL_WHITELIST  = ("hoàn thành", "hoan thanh", "hoan-thanh")
+_PENDING_EXACT = frozenset({
+    "new", "pending", "draft", "waiting",
+    "chờ xác nhận", "cho xac nhan", "chờ xử lý",
 })
-# Contains: status chứa cụm này (dùng cho status có tiền tố "đã ...")
-_FULFILLED_CONTAINS = (
-    "đã xác nhận", "da xac nhan",
-    "đã giao", "da giao",
-    "đã hoàn thành", "hoàn thành", "hoan thanh",
-)
-# Trạng thái bị loại (hoàn trả, hủy)
-_CANCELLED_EXACT = frozenset({
-    "đã hoàn", "da hoan", "returned", "return", "refunded", "refund",
-    "đã hủy", "da huy", "cancelled", "canceled", "cancel", "hủy", "huy",
-})
+
+_status_seen: set[str] = set()
 
 
 def _is_fulfilled(order: dict[str, Any]) -> bool:
+    import sys
     s = str(order.get("status") or order.get("order_status") or "").strip().lower()
+    # Log mỗi status value lần đầu gặp để debug
+    if s and s not in _status_seen:
+        _status_seen.add(s)
+        print(f"[pancake-status] {s!r}", file=sys.stderr, flush=True)
     if not s:
+        return True  # không có status → giữ như code gốc
+    if s in _PENDING_EXACT:
         return False
-    if s in _CANCELLED_EXACT:
-        return False
-    return s in _FULFILLED_EXACT or any(kw in s for kw in _FULFILLED_CONTAINS)
+    if any(kw in s for kw in _CANCEL_SUBSTRINGS):
+        if not any(wl in s for wl in _CANCEL_WHITELIST):
+            return False
+    return True
 
 
 def _decimal(value: Any) -> Decimal:
