@@ -24,13 +24,13 @@ class PancakeClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
-    def shop_orders(self, shop_id: str, since: date, until: date, max_pages: int = 20, page_size: int = 100) -> PosMetrics:
+    def shop_orders(self, shop_id: str, since: date, until: date, max_pages: int = 20, page_size: int = 100, delivering_statuses: frozenset[str] = frozenset()) -> PosMetrics:
         try:
-            return self._shop_orders_range(shop_id, since, until, max_pages=max_pages, page_size=page_size)
+            return self._shop_orders_range(shop_id, since, until, max_pages=max_pages, page_size=page_size, delivering_statuses=delivering_statuses)
         except Exception as range_error:
             if since >= until:
                 raise
-            return self._shop_orders_by_day(shop_id, since, until, range_error, max_pages=max_pages, page_size=page_size)
+            return self._shop_orders_by_day(shop_id, since, until, range_error, max_pages=max_pages, page_size=page_size, delivering_statuses=delivering_statuses)
 
     def _shop_orders_range(
         self,
@@ -41,6 +41,7 @@ class PancakeClient:
         page_size: int = 100,
         timeout_seconds: int | None = None,
         retries: int | None = None,
+        delivering_statuses: frozenset[str] = frozenset(),
     ) -> PosMetrics:
         records: list[dict[str, Any]] = []
         timeout = timeout_seconds if timeout_seconds is not None else self.settings.http_timeout_seconds
@@ -68,7 +69,7 @@ class PancakeClient:
             if len(page_records) < page_size:
                 break
         print(f"[pos-debug] shop={shop_id} {since}→{until} fetched={len(records)}", file=sys.stderr)
-        result = metrics_from_orders(records, since, until)
+        result = metrics_from_orders(records, since, until, delivering_statuses=delivering_statuses)
         print(f"[pos-debug] shop={shop_id} after_filter orders={result.orders} revenue={result.revenue}", file=sys.stderr)
         return result
 
@@ -80,6 +81,7 @@ class PancakeClient:
         range_error: Exception,
         max_pages: int = 20,
         page_size: int = 100,
+        delivering_statuses: frozenset[str] = frozenset(),
     ) -> PosMetrics:
         total = PosMetrics()
         failed_days: list[str] = []
@@ -101,6 +103,7 @@ class PancakeClient:
                     page_size,
                     fallback_timeout,
                     0,
+                    delivering_statuses,
                 ): day
                 for day in days
             }
@@ -139,14 +142,14 @@ def _extract_records(payload: dict[str, Any], keys: tuple[str, ...]) -> list[dic
 # Mapping xác nhận qua phân tích log thực tế:
 #   0           = mới nhận (initial receipt)         → loại
 #   1           = chưa xác nhận (mới)               → loại
-#   2           = đang giao (sau xác nhận) — GIỮ nếu đơn đã từng qua status 3+
-#                 (một số shop dùng 2="pending"; một số shop dùng 2="đang giao" sau xác nhận)
+#   2           = tuỳ shop: "pending" (loại) hoặc "đang giao" (GIỮ nếu đã qua 3+)
+#                 Cấu hình per-shop qua pos_delivering_statuses trong brands.json
 #   9           = đã hủy                             → loại
 #   8           = đã hoàn trả — GIỮ nếu đơn đã từng xác nhận trước đó
 #                 (Pancake config: "Hoàn trả trừ khi Chốt đơn" — chưa chốt = vẫn tính DT)
 #   3,4,5,6,11,13,15 = đã xác nhận trở lên          → giữ
 #   '' (rỗng)   = không có status                    → giữ (an toàn)
-_NUMERIC_HARD_EXCLUDE = frozenset({"0", "1", "9"})
+_NUMERIC_HARD_EXCLUDE = frozenset({"0", "1", "2", "9"})
 
 # Status dùng để tìm ngày xác nhận trong status_history (KHÔNG bao gồm 8 — tránh lấy nhầm ngày hoàn)
 _NUMERIC_CONFIRMED = frozenset({"3", "4", "5", "6", "11", "13", "15"})
@@ -156,26 +159,20 @@ _TEXT_CANCEL_SUB  = ("hủy", "huy", "cancel")
 _TEXT_PENDING     = frozenset({"new", "pending", "draft", "waiting", "chờ xác nhận", "chờ xử lý"})
 
 
-def _is_fulfilled(order: dict[str, Any]) -> bool:
+def _is_fulfilled(order: dict[str, Any], delivering_statuses: frozenset[str] = frozenset()) -> bool:
     raw = str(order.get("status") or order.get("order_status") or "").strip()
     if not raw:
         return True  # không có status → giữ
     # Numeric status (Pancake thực tế)
     if raw.isdigit():
         if raw in _NUMERIC_HARD_EXCLUDE:
+            # Status có thể là "đang giao" per-shop config: giữ nếu đã từng qua status 3+
+            if raw in delivering_statuses:
+                return _has_prior_confirmed(order)
             return False
-        # Status 2 (đang giao) và 8 (hoàn trả): chỉ tính nếu đơn đã từng qua status 3+
-        # Status 2 ở một số shop = "pending" (chưa xác nhận), shop khác = "đang giao" (sau xác nhận)
-        # Kiểm tra history để phân biệt — nếu có status 3+ trong history → đơn đã xác nhận
-        if raw in ("2", "8"):
-            history = order.get("status_history")
-            if isinstance(history, list):
-                for entry in history:
-                    if isinstance(entry, dict):
-                        rs = str(entry.get("status") or "").strip()
-                        if rs in _NUMERIC_CONFIRMED:
-                            return True
-            return False
+        # Status 8 (hoàn trả): chỉ tính nếu đơn đã từng được xác nhận trước đó
+        if raw == "8":
+            return _has_prior_confirmed(order)
         return True
     # Text status (fallback)
     s = raw.lower()
@@ -184,6 +181,17 @@ def _is_fulfilled(order: dict[str, Any]) -> bool:
     if any(kw in s for kw in _TEXT_CANCEL_SUB):
         return False
     return True
+
+
+def _has_prior_confirmed(order: dict[str, Any]) -> bool:
+    history = order.get("status_history")
+    if isinstance(history, list):
+        for entry in history:
+            if isinstance(entry, dict):
+                rs = str(entry.get("status") or "").strip()
+                if rs in _NUMERIC_CONFIRMED:
+                    return True
+    return False
 
 
 def _decimal(value: Any) -> Decimal:
@@ -268,7 +276,12 @@ def _in_window(order: dict[str, Any], since: date, until: date) -> bool:
     )
 
 
-def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
+def metrics_from_orders(
+    records: list[dict[str, Any]],
+    since: date,
+    until: date,
+    delivering_statuses: frozenset[str] = frozenset(),
+) -> PosMetrics:
     from collections import Counter
     orders = []
     status_out: Counter = Counter()
@@ -290,7 +303,7 @@ def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date)
             date_detail["confirmed_only"] += 1
         else:
             date_detail["neither_kept"] += 1
-        if not _is_fulfilled(record):
+        if not _is_fulfilled(record, delivering_statuses=delivering_statuses):
             raw = str(record.get("status") or record.get("order_status") or "").strip()
             status_out[raw] += 1
             continue

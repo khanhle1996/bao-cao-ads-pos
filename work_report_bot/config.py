@@ -49,6 +49,10 @@ class Brand:
     name: str
     ad_account_ids: tuple[str, ...]
     pos_shop_ids: tuple[str, ...]
+    # Status codes mà shop dùng cho giai đoạn sau xác nhận (vd: "đang giao").
+    # Những status này được tính nếu đơn đã từng qua status 3/4/5/6/11/13/15 trước đó.
+    # Mặc định rỗng (chỉ status 8 áp dụng logic này theo mặc định).
+    pos_delivering_statuses: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -84,6 +88,9 @@ def load_brands(path: Path = BRANDS_PATH) -> tuple[Brand, ...]:
                 name=str(item["name"]),
                 ad_account_ids=tuple(str(value) for value in item.get("ad_account_ids", [])),
                 pos_shop_ids=tuple(str(value) for value in item.get("pos_shop_ids", [])),
+                pos_delivering_statuses=frozenset(
+                    str(v) for v in item.get("pos_delivering_statuses", [])
+                ),
             )
         )
     if not brands:

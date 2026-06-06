@@ -95,7 +95,7 @@ def _build_window_report(
                 future = executor.submit(_fetch_ads, meta, account_id, since, until)
                 futures[future] = ("ads", brand_index, source_index)
             for source_index, shop_id in enumerate(brand.pos_shop_ids):
-                future = executor.submit(_fetch_pos, pancake, shop_id, since, until)
+                future = executor.submit(_fetch_pos, pancake, shop_id, since, until, brand.pos_delivering_statuses)
                 futures[future] = ("pos", brand_index, source_index)
 
         for future in as_completed(futures):
@@ -120,9 +120,15 @@ def _fetch_ads(meta: MetaClient, account_id: str, since: date, until: date) -> S
         return SourceResult(account_id, AdsMetrics(), _safe_error(exc))
 
 
-def _fetch_pos(pancake: PancakeClient, shop_id: str, since: date, until: date) -> SourceResult:
+def _fetch_pos(
+    pancake: PancakeClient,
+    shop_id: str,
+    since: date,
+    until: date,
+    delivering_statuses: frozenset[str] = frozenset(),
+) -> SourceResult:
     try:
-        return SourceResult(shop_id, pancake.shop_orders(shop_id, since, until))
+        return SourceResult(shop_id, pancake.shop_orders(shop_id, since, until, delivering_statuses=delivering_statuses))
     except PartialPosError as exc:
         return SourceResult(shop_id, exc.metrics, _safe_error(exc))
     except Exception as exc:

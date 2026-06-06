@@ -8,7 +8,8 @@
     {
       "name": "Jennie Choo",
       "ad_account_ids": ["692061999078661"],
-      "pos_shop_ids": ["20094936"]
+      "pos_shop_ids": ["20094936"],
+      "pos_delivering_statuses": ["2"]
     },
     {
       "name": "Say Studios",
