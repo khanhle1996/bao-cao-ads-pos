@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import sys
 from dataclasses import dataclass
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from .config import Settings
-from .http import get_json
+from .http import get_json, post_json
+
+_ANALYTICS_BASE = "https://pos.pancake.vn/api/v1"
+_HCM = ZoneInfo("Asia/Ho_Chi_Minh")
 
 
 @dataclass(frozen=True)
@@ -23,6 +27,34 @@ class PosMetrics:
 class PancakeClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+
+    def analytics_sale(self, shop_id: str, since: date, until: date) -> PosMetrics:
+        since_str = datetime(since.year, since.month, since.day, 0, 0, 0, tzinfo=_HCM).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
+        until_str = datetime(until.year, until.month, until.day, 23, 59, 59, tzinfo=_HCM).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.999Z")
+        payload = {
+            "params": {
+                "returned_record": "updated_at",
+                "success_record": "inserted_at",
+                "success_status": 1,
+                "since": since_str,
+                "until": until_str,
+                "split_by": ["Time.day"],
+                "render_fields": ["total_order_count", "success_order_count", "canceled_order_count", "revenue", "sales"],
+                "pagination": {"pageSize": 100, "current": 1},
+            }
+        }
+        response = post_json(
+            f"{_ANALYTICS_BASE}/shops/{shop_id}/analytics/sale",
+            params={"access_token": self.settings.pancake_access_token},
+            body=payload,
+            timeout=self.settings.http_timeout_seconds,
+            retries=self.settings.http_retries,
+        )
+        summary = response.get("summary") or {}
+        orders = int(summary.get("success_order_count") or 0)
+        revenue = _decimal(summary.get("revenue") or 0)
+        print(f"[analytics] shop={shop_id} {since}→{until} orders={orders} revenue={revenue}", file=sys.stderr)
+        return PosMetrics(orders=orders, revenue=revenue)
 
     def shop_orders(self, shop_id: str, since: date, until: date, max_pages: int = 20, page_size: int = 100, delivering_statuses: frozenset[str] = frozenset()) -> PosMetrics:
         try:

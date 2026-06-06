@@ -55,6 +55,38 @@ def get_json(url: str, params: dict[str, Any] | None = None, timeout: int = 30, 
     raise HttpError(str(last_error or "GET request failed"))
 
 
+def post_json(url: str, params: dict[str, Any] | None = None, body: Any = None, timeout: int = 30, retries: int = 2) -> dict[str, Any]:
+    full_url = url
+    if params:
+        full_url = f"{url}?{urllib.parse.urlencode(params, doseq=True)}"
+    encoded = json.dumps(body).encode("utf-8") if body is not None else b""
+    request = urllib.request.Request(
+        full_url,
+        data=encoded,
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    last_error: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                payload = json.loads(response.read().decode("utf-8"))
+            if not isinstance(payload, dict):
+                raise HttpError("Response was not a JSON object")
+            return payload
+        except urllib.error.HTTPError as exc:
+            body_text = exc.read().decode("utf-8", errors="replace")
+            last_error = HttpError(f"POST {safe_endpoint(full_url)} failed: {exc.code} {redact(body_text)[:240]}")
+            if exc.code < 500 or attempt >= retries:
+                raise last_error from exc
+        except (urllib.error.URLError, socket.timeout) as exc:
+            last_error = HttpError(f"POST {safe_endpoint(full_url)} failed: {exc}")
+            if attempt >= retries:
+                raise last_error from exc
+        time.sleep(0.8 * (attempt + 1))
+    raise HttpError(str(last_error or "POST request failed"))
+
+
 def post_form(url: str, data: dict[str, Any], timeout: int = 30) -> dict[str, Any]:
     encoded = urllib.parse.urlencode(data).encode("utf-8")
     request = urllib.request.Request(url, data=encoded, method="POST")

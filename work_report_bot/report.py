@@ -128,6 +128,11 @@ def _fetch_pos(
     delivering_statuses: frozenset[str] = frozenset(),
 ) -> SourceResult:
     try:
+        return SourceResult(shop_id, pancake.analytics_sale(shop_id, since, until))
+    except Exception as analytics_exc:
+        import sys as _sys
+        print(f"[analytics-fallback] shop={shop_id}: {analytics_exc}", file=_sys.stderr)
+    try:
         return SourceResult(shop_id, pancake.shop_orders(shop_id, since, until, delivering_statuses=delivering_statuses))
     except PartialPosError as exc:
         return SourceResult(shop_id, exc.metrics, _safe_error(exc))
