@@ -208,14 +208,23 @@ def _total(order: dict[str, Any]) -> Decimal:
 
 
 def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
+    import sys
+    n_api = len(records)
+    n_date_drop = 0
     orders = []
     for record in records:
         created = _created_date(record)
         if created is not None and not (since <= created <= until):
+            n_date_drop += 1
             continue
         if not _is_fulfilled(record):
             continue
         orders.append(record)
+    print(
+        f"[pos-debug] {since}→{until} api={n_api} date_dropped={n_date_drop} "
+        f"status_kept={len(orders)}",
+        file=sys.stderr, flush=True,
+    )
     return PosMetrics(orders=len(orders), revenue=sum((_total(order) for order in orders), Decimal("0")))
 
 
