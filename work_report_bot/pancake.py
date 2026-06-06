@@ -130,32 +130,34 @@ def _extract_records(payload: dict[str, Any], keys: tuple[str, ...]) -> list[dic
     return []
 
 
-# Deny-list: chỉ loại đơn hoàn/hủy rõ ràng, giữ tất cả trạng thái còn lại.
-# "hoàn thành" KHÔNG phải hoàn trả → được whitelist.
-_CANCEL_SUBSTRINGS = ("hoàn", "hoan", "hủy", "huy", "cancel", "return", "refund")
-_CANCEL_WHITELIST  = ("hoàn thành", "hoan thanh", "hoan-thanh")
-_PENDING_EXACT = frozenset({
-    "new", "pending", "draft", "waiting",
-    "chờ xác nhận", "cho xac nhan", "chờ xử lý",
-})
+# Pancake dùng mã số cho status (không phải text).
+# Mapping xác nhận qua phân tích log thực tế:
+#   1, 2        = chưa xác nhận (mới / chờ xử lý)  → loại
+#   8           = đã hoàn trả                        → loại
+#   9           = đã hủy                             → loại
+#   3,4,5,6,11,13,15 = đã xác nhận trở lên          → giữ
+#   '' (rỗng)   = không có status                    → giữ (an toàn)
+_NUMERIC_EXCLUDE = frozenset({"1", "2", "8", "9"})
 
-_status_seen: set[str] = set()
+# Fallback cho hệ thống trả text thay vì số
+_TEXT_CANCEL_SUB  = ("hoàn", "hoan", "hủy", "huy", "cancel", "return", "refund")
+_TEXT_CANCEL_SAFE = ("hoàn thành", "hoan thanh")   # "hoàn thành" ≠ hoàn trả
+_TEXT_PENDING     = frozenset({"new", "pending", "draft", "waiting", "chờ xác nhận", "chờ xử lý"})
 
 
 def _is_fulfilled(order: dict[str, Any]) -> bool:
-    import sys
-    s = str(order.get("status") or order.get("order_status") or "").strip().lower()
-    # Log mỗi status value lần đầu gặp để debug
-    if s and s not in _status_seen:
-        _status_seen.add(s)
-        print(f"[pancake-status] {s!r}", file=sys.stderr, flush=True)
-    if not s:
+    raw = str(order.get("status") or order.get("order_status") or "").strip()
+    if not raw:
         return True  # không có status → giữ như code gốc
-    if s in _PENDING_EXACT:
+    # Numeric status (Pancake thực tế)
+    if raw.isdigit():
+        return raw not in _NUMERIC_EXCLUDE
+    # Text status (fallback)
+    s = raw.lower()
+    if s in _TEXT_PENDING:
         return False
-    if any(kw in s for kw in _CANCEL_SUBSTRINGS):
-        if not any(wl in s for wl in _CANCEL_WHITELIST):
-            return False
+    if any(kw in s for kw in _TEXT_CANCEL_SUB) and not any(ok in s for ok in _TEXT_CANCEL_SAFE):
+        return False
     return True
 
 
@@ -206,22 +208,14 @@ def _total(order: dict[str, Any]) -> Decimal:
 
 
 def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
-    import sys
-    from collections import Counter
-    status_counter: Counter[str] = Counter()
     orders = []
     for record in records:
         created = _created_date(record)
         if created is not None and not (since <= created <= until):
             continue
-        s = str(record.get("status") or record.get("order_status") or "").strip()
-        status_counter[s] += 1
         if not _is_fulfilled(record):
             continue
         orders.append(record)
-    # Log phân bổ status để xác định mapping số → tên trạng thái
-    print(f"[pancake-status-count] total={sum(status_counter.values())} accepted={len(orders)} "
-          f"dist={dict(sorted(status_counter.items()))}", file=sys.stderr, flush=True)
     return PosMetrics(orders=len(orders), revenue=sum((_total(order) for order in orders), Decimal("0")))
 
 
