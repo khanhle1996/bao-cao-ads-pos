@@ -138,13 +138,15 @@ def _extract_records(payload: dict[str, Any], keys: tuple[str, ...]) -> list[dic
 # Pancake dùng mã số cho status (không phải text).
 # Mapping xác nhận qua phân tích log thực tế:
 #   0           = mới nhận (initial receipt)         → loại
-#   1, 2        = chưa xác nhận (mới / chờ xử lý)  → loại
+#   1           = chưa xác nhận (mới)               → loại
+#   2           = đang giao (sau xác nhận) — GIỮ nếu đơn đã từng qua status 3+
+#                 (một số shop dùng 2="pending"; một số shop dùng 2="đang giao" sau xác nhận)
 #   9           = đã hủy                             → loại
 #   8           = đã hoàn trả — GIỮ nếu đơn đã từng xác nhận trước đó
 #                 (Pancake config: "Hoàn trả trừ khi Chốt đơn" — chưa chốt = vẫn tính DT)
 #   3,4,5,6,11,13,15 = đã xác nhận trở lên          → giữ
 #   '' (rỗng)   = không có status                    → giữ (an toàn)
-_NUMERIC_HARD_EXCLUDE = frozenset({"0", "1", "2", "9"})
+_NUMERIC_HARD_EXCLUDE = frozenset({"0", "1", "9"})
 
 # Status dùng để tìm ngày xác nhận trong status_history (KHÔNG bao gồm 8 — tránh lấy nhầm ngày hoàn)
 _NUMERIC_CONFIRMED = frozenset({"3", "4", "5", "6", "11", "13", "15"})
@@ -162,15 +164,16 @@ def _is_fulfilled(order: dict[str, Any]) -> bool:
     if raw.isdigit():
         if raw in _NUMERIC_HARD_EXCLUDE:
             return False
-        # Status 8 (hoàn trả): chỉ tính nếu đơn đã từng được xác nhận trước đó
-        # (chưa "chốt đơn" nên chưa trừ khỏi doanh thu per Pancake config)
-        if raw == "8":
+        # Status 2 (đang giao) và 8 (hoàn trả): chỉ tính nếu đơn đã từng qua status 3+
+        # Status 2 ở một số shop = "pending" (chưa xác nhận), shop khác = "đang giao" (sau xác nhận)
+        # Kiểm tra history để phân biệt — nếu có status 3+ trong history → đơn đã xác nhận
+        if raw in ("2", "8"):
             history = order.get("status_history")
             if isinstance(history, list):
                 for entry in history:
                     if isinstance(entry, dict):
                         rs = str(entry.get("status") or "").strip()
-                        if rs in _NUMERIC_CONFIRMED and rs != "8":
+                        if rs in _NUMERIC_CONFIRMED:
                             return True
             return False
         return True
