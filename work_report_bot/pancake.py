@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -49,6 +50,7 @@ class PancakeClient:
                 f"{self.settings.pancake_base_url}/shops/{shop_id}/orders",
                 {
                     "access_token": self.settings.pancake_access_token,
+                    "page": page_number,
                     "page_number": page_number,
                     "page_size": page_size,
                     "start_date": since.isoformat(),
@@ -65,7 +67,10 @@ class PancakeClient:
             records.extend(page_records)
             if len(page_records) < page_size:
                 break
-        return metrics_from_orders(records, since, until)
+        print(f"[pos-debug] shop={shop_id} {since}→{until} fetched={len(records)}", file=sys.stderr)
+        result = metrics_from_orders(records, since, until)
+        print(f"[pos-debug] shop={shop_id} after_filter orders={result.orders} revenue={result.revenue}", file=sys.stderr)
+        return result
 
     def _shop_orders_by_day(
         self,
