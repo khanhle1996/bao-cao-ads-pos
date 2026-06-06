@@ -241,58 +241,14 @@ def _total(order: dict[str, Any]) -> Decimal:
 
 
 def metrics_from_orders(records: list[dict[str, Any]], since: date, until: date) -> PosMetrics:
-    import sys
-    n_created_in = n_history_in = n_lus_in = n_date_out = n_status_out = 0
     orders = []
     for record in records:
-        created = _created_date(record)
-        lus_dt = _parse_datetime(record.get("last_update_status_at"))
-        lus = lus_dt.date() if lus_dt else None
-
-        history = record.get("status_history")
-        hist_date: date | None = None
-        if isinstance(history, list):
-            times: list[datetime] = []
-            for entry in history:
-                if not isinstance(entry, dict):
-                    continue
-                rs = str(entry.get("status") or "").strip()
-                if rs in _NUMERIC_CONFIRMED:
-                    for tk in ("updated_at", "created_at", "inserted_at", "time"):
-                        dt = _parse_datetime(entry.get(tk))
-                        if dt:
-                            times.append(dt)
-                            break
-            if times:
-                hist_date = min(times).date()
-
-        effective = hist_date or lus or created
-
+        effective = _effective_date(record)
         if effective is not None and not (since <= effective <= until):
-            n_date_out += 1
-            # Log orders that are in created/lus range but filtered out by history
-            if (created is not None and since <= created <= until) or (lus is not None and since <= lus <= until):
-                print(
-                    f"[pos-mismatch] status={record.get('status')} hist={hist_date} lus={lus} created={created}",
-                    file=sys.stderr, flush=True,
-                )
             continue
         if not _is_fulfilled(record):
-            n_status_out += 1
             continue
-        if hist_date and since <= hist_date <= until:
-            n_history_in += 1
-        elif lus and since <= lus <= until:
-            n_lus_in += 1
-        else:
-            n_created_in += 1
         orders.append(record)
-    print(
-        f"[pos-count] {since}→{until} total={len(orders)} "
-        f"by_history={n_history_in} by_lus={n_lus_in} by_created={n_created_in} "
-        f"date_out={n_date_out} status_out={n_status_out}",
-        file=sys.stderr, flush=True,
-    )
     return PosMetrics(orders=len(orders), revenue=sum((_total(order) for order in orders), Decimal("0")))
 
 
