@@ -39,6 +39,7 @@ class PancakeClient:
                 "since": since_str,
                 "until": until_str,
                 "split_by": ["Time.day"],
+                "select_fields": ["cod", "prepaid", "partner_fee", "total_order_count", "order_count", "shipping_fee", "exchange_order_count", "canceled_order_count", "price", "discount", "surcharge", "fee_marketplace", "exchange_payment", "affiliate_price", "marketplace_voucher", "diff_shipping_fee"],
                 "render_fields": ["total_order_count", "success_order_count", "canceled_order_count", "revenue", "sales"],
                 "pagination": {"pageSize": 100, "current": 1},
             }
