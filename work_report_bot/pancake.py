@@ -52,6 +52,11 @@ class PancakeClient:
             retries=self.settings.http_retries,
         )
         summary = response.get("summary") or {}
+        data = response.get("data") or []
+        print(f"[analytics-debug] shop={shop_id} {since}→{until} top_keys={list(response.keys())} summary={dict(summary)}", file=sys.stderr)
+        for row in data:
+            day = row.get("Time.day", "?")
+            print(f"[analytics-debug]   row {day}: ok={row.get('success_order_count')} rev={row.get('revenue')} sales={row.get('sales')} price={row.get('price')}", file=sys.stderr)
         orders = int(summary.get("success_order_count") or 0)
         revenue = _decimal(summary.get("revenue") or 0)
         print(f"[analytics] shop={shop_id} {since}→{until} orders={orders} revenue={revenue}", file=sys.stderr)
