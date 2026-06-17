@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import date, timedelta
@@ -93,6 +94,69 @@ class MetaClient:
             three_day_spend=_spend(f_3day),
         )
 
+    def campaign_diagnose(
+        self,
+        ad_account_ids: list[str],
+        since: date,
+        until: date,
+        target_cpdt: float = 28.0,
+        min_spend: int = 200_000,
+    ) -> list[CampaignRec]:
+        raw_rows: list[dict[str, Any]] = []
+        for account_id in ad_account_ids:
+            account = account_id if account_id.startswith("act_") else f"act_{account_id}"
+            url: str | None = f"{self.base_url}/{account}/insights"
+            params: dict[str, Any] = {
+                "access_token": self.settings.meta_access_token,
+                "level": "campaign",
+                "fields": "campaign_id,campaign_name,spend,actions,action_values",
+                "time_range": json.dumps({"since": since.isoformat(), "until": until.isoformat()}),
+                "limit": 500,
+            }
+            first_call = True
+            while url:
+                payload = get_json(
+                    url,
+                    params if first_call else {},
+                    timeout=self.settings.http_timeout_seconds,
+                    retries=self.settings.http_retries,
+                )
+                first_call = False
+                raw_rows.extend(row for row in payload.get("data", []) if isinstance(row, dict))
+                url = (payload.get("paging") or {}).get("next")
+
+        min_spend_dec = Decimal(str(min_spend))
+        result: list[CampaignRec] = []
+        for row in raw_rows:
+            spend = _decimal(row.get("spend"))
+            if spend < min_spend_dec:
+                continue
+            revenue = _sum_first([row], "action_values", PURCHASE_ACTIONS)
+            roas = float(revenue / spend) if spend > 0 else 0.0
+            cpdt_pct: float | None = float(spend / revenue * 100) if revenue > 0 else None
+            if revenue > 0 and cpdt_pct is not None and cpdt_pct < target_cpdt:
+                action = "scale"
+            elif revenue == 0:
+                action = "pause"
+            elif cpdt_pct is not None and cpdt_pct >= target_cpdt * 1.6:
+                action = "pause"
+            elif cpdt_pct is not None and cpdt_pct >= target_cpdt:
+                action = "reduce"
+            else:
+                action = "watch"
+            name = str(row.get("campaign_name") or row.get("campaign_id") or "")
+            result.append(CampaignRec(
+                campaign_id=str(row.get("campaign_id") or ""),
+                campaign_name=name,
+                spend=spend,
+                revenue=revenue,
+                roas=roas,
+                cpdt_pct=cpdt_pct,
+                action=action,
+                product_codes=_extract_product_codes(name),
+            ))
+        return result
+
     def account_insights(self, ad_account_id: str, since: date, until: date) -> AdsMetrics:
         account = ad_account_id if ad_account_id.startswith("act_") else f"act_{ad_account_id}"
         payload = get_json(
@@ -137,3 +201,28 @@ def metrics_from_rows(rows: list[dict[str, Any]]) -> AdsMetrics:
         purchases=_sum_first(rows, "actions", PURCHASE_ACTIONS),
         meta_revenue=_sum_first(rows, "action_values", PURCHASE_ACTIONS),
     )
+
+
+_CODE_SPLIT_RE = re.compile(r'[_\s,;|/\\]+')
+_CODE_PAT_RE = re.compile(r'^[A-Z]{1,3}\d{2,5}$')
+
+
+def _extract_product_codes(name: str) -> tuple[str, ...]:
+    tokens = _CODE_SPLIT_RE.split(name.upper())
+    seen: dict[str, None] = {}
+    for t in tokens:
+        if _CODE_PAT_RE.match(t):
+            seen[t] = None
+    return tuple(seen)
+
+
+@dataclass(frozen=True)
+class CampaignRec:
+    campaign_id: str
+    campaign_name: str
+    spend: Decimal
+    revenue: Decimal
+    roas: float
+    cpdt_pct: float | None  # None if revenue == 0
+    action: str  # "scale" | "reduce" | "pause" | "watch"
+    product_codes: tuple[str, ...]

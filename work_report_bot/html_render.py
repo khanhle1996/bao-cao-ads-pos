@@ -50,6 +50,13 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None, bi
   <div class="cards">{cards}</div>
 </section>"""
 
+    nav_html = (
+        '<nav style="background:#1a1a2e;padding:12px 20px;display:flex;align-items:center;gap:24px;">'
+        '<a href="index.html" style="color:#fff;text-decoration:none;font-weight:600;font-size:14px;">📊 Báo cáo tổng hợp</a>'
+        '<a href="san-pham.html" style="color:#aaa;text-decoration:none;font-size:14px;">🛍 Sản phẩm cần chạy Ads</a>'
+        "</nav>"
+    )
+
     return f"""<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -107,6 +114,7 @@ def _render(reports: tuple[WindowReport, ...], generated_at: datetime | None, bi
   </style>
 </head>
 <body>
+  {nav_html}
   <div class="container">
     <header>
       <h1>📊 Báo cáo Ads/POS — Antigravity</h1>

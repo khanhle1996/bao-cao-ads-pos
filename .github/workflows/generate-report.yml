@@ -2,7 +2,8 @@ name: Generate Web Report
 
 on:
   schedule:
-    - cron: '0 * * * *'   # mỗi tiếng (UTC) — tương đương tiếng chẵn +7 giờ VN
+    - cron: '0 * * * *'   # main page: mỗi tiếng (UTC) — tiếng chẵn +7 VN
+    - cron: '0 2 * * *'   # product page: 09:00 Vietnam = 02:00 UTC
   workflow_dispatch:        # cho phép chạy thủ công để test
 
 permissions:
@@ -23,7 +24,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Generate HTML dashboard
+      - name: Generate main dashboard (mỗi tiếng)
         env:
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
           PANCAKE_ACCESS_TOKEN: ${{ secrets.PANCAKE_ACCESS_TOKEN }}
@@ -31,10 +32,21 @@ jobs:
           REPORT_TIMEZONE: 'Asia/Ho_Chi_Minh'
         run: python -m work_report_bot generate-html --output docs/index.html
 
+      - name: Generate product report (09:00 VN hoặc manual)
+        if: >
+          github.event_name == 'workflow_dispatch' ||
+          github.event.schedule == '0 2 * * *'
+        env:
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          PANCAKE_ACCESS_TOKEN: ${{ secrets.PANCAKE_ACCESS_TOKEN }}
+          META_API_VERSION: 'v25.0'
+          REPORT_TIMEZONE: 'Asia/Ho_Chi_Minh'
+        run: python -m work_report_bot generate-product-html --output docs/san-pham.html
+
       - name: Commit và push HTML
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html
-          git diff --cached --quiet || git commit -m "chore: update web dashboard [skip ci]"
+          git add docs/index.html docs/san-pham.html
+          git diff --cached --quiet || git commit -m "chore: update dashboard [skip ci]"
           git push

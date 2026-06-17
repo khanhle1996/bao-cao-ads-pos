@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from .config import get_api_settings, get_settings
 from .html_render import render_html
+from .meta import MetaClient
+from .pancake import PancakeClient
+from .product_html import render_product_html
+from .product_report import build_product_report
 from .report import build_billing_data, build_reports, render_telegram
 from .scheduler import run_daemon
 from .telegram import send_messages
@@ -44,6 +49,30 @@ def cmd_daemon(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_generate_product_html(args: argparse.Namespace) -> int:
+    settings = get_api_settings()
+    now = datetime.now(ZoneInfo(settings.report_timezone))
+    since = (now - timedelta(days=7)).date()
+    until = now.date()
+    brand = settings.brands[0]  # Lysilk
+    meta = MetaClient(settings)
+    pancake = PancakeClient(settings)
+    print(f"Fetching campaign data {since} → {until} ...")
+    campaigns = meta.campaign_diagnose(list(brand.ad_account_ids), since, until)
+    print(f"Fetched {len(campaigns)} campaigns. Fetching POS stock/sales (30 days) ...")
+    pos_data = pancake.product_stock_and_sales(brand.pos_shop_ids[0], days=30)
+    print(f"POS: {len(pos_data)} product codes. Building report ...")
+    rows = build_product_report(campaigns, pos_data)
+    total_spend = sum((c.spend for c in campaigns), Decimal("0"))
+    total_revenue = sum((c.revenue for c in campaigns), Decimal("0"))
+    html = render_product_html(rows, total_spend, total_revenue, generated_at=now)
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(html, encoding="utf-8")
+    print(f"Product report written to {output_path} ({len(rows)} products)")
+    return 0
+
+
 def cmd_generate_html(args: argparse.Namespace) -> int:
     settings = get_api_settings()
     now = datetime.now(ZoneInfo(settings.report_timezone))
@@ -77,6 +106,10 @@ def build_parser() -> argparse.ArgumentParser:
     gen_html.add_argument("--windows", type=parse_windows, default=(1, 3, 5, 7))
     gen_html.add_argument("--output", default="docs/index.html", help="Output file path.")
     gen_html.set_defaults(func=cmd_generate_html)
+
+    gen_product = sub.add_parser("generate-product-html", help="Generate product ads/stock report to docs/san-pham.html.")
+    gen_product.add_argument("--output", default="docs/san-pham.html", help="Output file path.")
+    gen_product.set_defaults(func=cmd_generate_product_html)
 
     return parser
 

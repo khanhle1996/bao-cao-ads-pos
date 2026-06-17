@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re as _re
 import sys
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
@@ -27,6 +28,116 @@ class PosMetrics:
 class PancakeClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
+
+    def _fetch_products(self, shop_id: str, max_pages: int = 20, page_size: int = 100) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        for page_number in range(1, max_pages + 1):
+            payload = get_json(
+                f"{self.settings.pancake_base_url}/shops/{shop_id}/products/variations",
+                {
+                    "access_token": self.settings.pancake_access_token,
+                    "page_number": page_number,
+                    "page_size": page_size,
+                    "product_status": "not_locked",
+                },
+                timeout=self.settings.http_timeout_seconds,
+                retries=self.settings.http_retries,
+            )
+            page = _extract_records(payload, ("products", "variations"))
+            if not page:
+                break
+            records.extend(page)
+            if len(page) < page_size:
+                break
+        return records
+
+    def _fetch_raw_orders(self, shop_id: str, since: date, until: date, max_pages: int = 30, page_size: int = 100) -> list[dict[str, Any]]:
+        records: list[dict[str, Any]] = []
+        for page_number in range(1, max_pages + 1):
+            payload = get_json(
+                f"{self.settings.pancake_base_url}/shops/{shop_id}/orders",
+                {
+                    "access_token": self.settings.pancake_access_token,
+                    "page": page_number,
+                    "page_number": page_number,
+                    "page_size": page_size,
+                    "start_date": since.isoformat(),
+                    "start_time": since.isoformat(),
+                    "end_date": until.isoformat(),
+                    "end_time": until.isoformat(),
+                },
+                timeout=self.settings.http_timeout_seconds,
+                retries=self.settings.http_retries,
+            )
+            page = _extract_records(payload, ("orders",))
+            if not page:
+                break
+            records.extend(page)
+            if len(page) < page_size:
+                break
+            if page_number >= 10:
+                print(f"[product-warn] shop={shop_id} {len(records)} orders at page {page_number}", file=sys.stderr)
+        return records
+
+    def product_stock_and_sales(self, shop_id: str, days: int = 30) -> dict[str, ProductSkuData]:
+        until = date.today()
+        since = until - timedelta(days=days - 1)
+
+        # 1. Fetch all product variations → stock by code
+        products = self._fetch_products(shop_id)
+        code_variations: dict[str, list[tuple[str, int]]] = {}
+        for product in products:
+            variations = product.get("variations")
+            if isinstance(variations, list) and variations:
+                for v in variations:
+                    if not isinstance(v, dict):
+                        continue
+                    sku = str(v.get("barcode") or v.get("custom_id") or product.get("custom_id") or "").strip().upper()
+                    if not sku:
+                        continue
+                    stock = max(0, int(v.get("remain_quantity") or 0))
+                    code = extract_product_code_from_sku(sku)
+                    code_variations.setdefault(code, []).append((_variation_label(product, v), stock))
+            else:
+                sku = str(product.get("barcode") or product.get("custom_id") or "").strip().upper()
+                if not sku:
+                    continue
+                stock = max(0, int(product.get("remain_quantity") or 0))
+                code = extract_product_code_from_sku(sku)
+                code_variations.setdefault(code, []).append((_variation_label(product, product), stock))
+
+        # 2. Fetch orders → count sold per product code
+        sold_by_code: dict[str, int] = {}
+        try:
+            orders = self._fetch_raw_orders(shop_id, since, until)
+            for order in orders:
+                if not _is_fulfilled(order):
+                    continue
+                for item in _order_items(order):
+                    sku = _item_sku(item)
+                    if not sku:
+                        continue
+                    qty = _item_quantity(item)
+                    code = extract_product_code_from_sku(sku)
+                    sold_by_code[code] = sold_by_code.get(code, 0) + qty
+        except Exception as exc:
+            print(f"[product-warn] order fetch failed: {exc}", file=sys.stderr)
+
+        # 3. Build result
+        result: dict[str, ProductSkuData] = {}
+        for code, variations in code_variations.items():
+            stock_web = sum(stock for _, stock in variations)
+            sold = sold_by_code.get(code, 0)
+            low = tuple(f"{label} ({stock})" for label, stock in variations if 0 < stock < 5)
+            out = tuple(label for label, stock in variations if stock == 0)
+            result[code] = ProductSkuData(
+                product_code=code,
+                sold_30d=sold,
+                stock_web=stock_web,
+                low_stock_sizes=low,
+                out_of_stock_sizes=out,
+            )
+        return result
 
     def analytics_sale(self, shop_id: str, since: date, until: date) -> PosMetrics:
         since_str = datetime(since.year, since.month, since.day, 0, 0, 0, tzinfo=_HCM).astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z")
@@ -358,3 +469,93 @@ class PartialPosError(RuntimeError):
     def __init__(self, metrics: PosMetrics, message: str) -> None:
         self.metrics = metrics
         super().__init__(message)
+
+
+# ── Product-level stock & sales ────────────────────────────────────────────────
+
+_PANCAKE_SIZES = frozenset({"XS", "S", "M", "L", "XL", "XXL", "XXXL", "FREESIZE", "FREE", "FS"})
+_PANCAKE_COLORS = frozenset({
+    "DEN", "ĐEN", "TRANG", "TRẮNG", "KEM", "HONG", "HỒNG", "DO", "ĐỎ", "DA", "NUDE",
+    "XANH", "VANG", "VÀNG", "GHI", "NAU", "NÂU", "BE", "TIM", "TÍM", "CAM",
+})
+_SKU_CODE_RE = _re.compile(r'^([A-Z]{1,3})0*(\d+)$')
+
+
+def extract_product_code_from_sku(sku: str) -> str:
+    """'LBN00619-KE HONG-M' → 'BN619'. Strips color/size suffixes, L prefix, leading zeros."""
+    parts = [p for p in sku.strip().upper().split("-") if p]
+    if not parts:
+        return sku.strip().upper()
+    while len(parts) > 1:
+        tail = parts[-1].strip()
+        if tail in _PANCAKE_SIZES or tail in _PANCAKE_COLORS or any(c in tail for c in _PANCAKE_COLORS):
+            parts.pop()
+            continue
+        break
+    raw = parts[0]  # e.g. "LBN00619"
+    if raw.startswith("L") and len(raw) > 1 and raw[1].isalpha():
+        raw = raw[1:]  # strip Lysilk prefix → "BN00619"
+    m = _SKU_CODE_RE.match(raw)
+    if m:
+        return m.group(1) + m.group(2)  # "BN" + "619"
+    return raw
+
+
+@dataclass(frozen=True)
+class ProductSkuData:
+    product_code: str
+    sold_30d: int
+    stock_web: int
+    low_stock_sizes: tuple[str, ...]    # size labels with 1–4 units
+    out_of_stock_sizes: tuple[str, ...]  # size labels with 0 units
+
+
+def _order_items(order: dict[str, Any]) -> list[dict[str, Any]]:
+    for key in ("bill_products", "items", "order_items", "products", "order_details"):
+        items = order.get(key)
+        if isinstance(items, list) and items:
+            return [item for item in items if isinstance(item, dict)]
+    return []
+
+
+def _item_sku(item: dict[str, Any]) -> str:
+    variation = item.get("variation") or item.get("variation_info") or {}
+    if not isinstance(variation, dict):
+        variation = {}
+    product = item.get("product") or item.get("product_info") or {}
+    if not isinstance(product, dict):
+        product = {}
+    for source in (item, variation, product):
+        for key in ("barcode", "custom_id", "sku"):
+            val = str(source.get(key) or "").strip()
+            if val:
+                return val.upper()
+    return ""
+
+
+def _item_quantity(item: dict[str, Any]) -> int:
+    for key in ("quantity", "qty", "count", "product_quantity"):
+        val = item.get(key)
+        if val is not None:
+            try:
+                return max(0, int(float(str(val))))
+            except (ValueError, TypeError):
+                continue
+    return 1
+
+
+def _variation_label(product: dict[str, Any], variation: dict[str, Any]) -> str:
+    fields = variation.get("fields") or product.get("fields")
+    if isinstance(fields, list):
+        for f in fields:
+            if not isinstance(f, dict):
+                continue
+            name = str(f.get("name") or f.get("key") or "").lower()
+            if any(kw in name for kw in ("size", "kich", "kích", "co", "cỡ")):
+                val = str(f.get("value") or "").strip()
+                if val:
+                    return val
+    sku = str(variation.get("barcode") or variation.get("custom_id") or "")
+    if "-" in sku:
+        return sku.rsplit("-", 1)[-1]
+    return str(variation.get("name") or product.get("name") or "?")
